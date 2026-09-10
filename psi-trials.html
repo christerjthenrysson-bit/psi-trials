@@ -3159,7 +3159,16 @@ function duelFinish(iWon,fromLive,msg){
   if(p && rated){ if(iWon) p.wins=(p.wins||0)+1; else p.losses=(p.losses||0)+1; save(); flushCloud(); }
   if(rated) duelRate(iWon ? _DUEL_WIN_RATING : -_DUEL_WIN_RATING);
   if(duel.ref) duel.ref.update({status:"done"}).catch(()=>{});
-  if(iWon){ flash(); burst(180); sfx("perfect"); } else sfx("miss");
+  if(iWon){
+    flash(); sfx("perfect"); burst(180);
+    if(rated){                          // extra celebration for a real PvP win
+      const meCol=(duel.me&&duel.me.col)||"#b3a1e6";
+      confettiBurstAt($("fMe"), meCol, 36, 150);
+      setTimeout(()=>{ if($("duel").classList.contains("show")) burst(170, innerWidth*0.26, innerHeight*0.34); }, 260);
+      setTimeout(()=>{ if($("duel").classList.contains("show")) burst(170, innerWidth*0.74, innerHeight*0.4); }, 560);
+      setTimeout(()=>{ if($("duel").classList.contains("show")){ burst(150, innerWidth*0.5, innerHeight*0.24); confettiBurstAt($("fMe"), meCol, 24, 120); } }, 900);
+    }
+  } else sfx("miss");
   duel.card=null;
   $("duel-cards").innerHTML=
     '<div style="margin:auto;text-align:center;padding:34px 14px">'+
