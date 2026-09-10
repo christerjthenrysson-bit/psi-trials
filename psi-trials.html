@@ -2962,9 +2962,10 @@ function duelNext(){
   duelChoose();
 }
 /* damage per charge + completion bonus, scaled by difficulty:
-   sequence (watch/repeat) > chimp (numbered tiles) > visual (disappearing tiles) */
-const _CHG_PER={number_memory:3.6,verbal_memory:1.6,visual_memory:3.0,chimp_test:4.0,sequence_memory:5.2};
-const _MINI_TIER={visual_memory:1,number_memory:2,verbal_memory:2,chimp_test:2,sequence_memory:3};
+   number_memory (recall the boxes) is the heaviest FOCUS, then sequence > chimp > visual > verbal.
+   a completed FOCUS always clearly beats a HARD hit (38); a well-charged one nears 2x it. */
+const _CHG_PER={number_memory:6.0,verbal_memory:3.2,visual_memory:4.2,chimp_test:5.0,sequence_memory:5.4};
+const _MINI_TIER={visual_memory:2,number_memory:4,verbal_memory:2,chimp_test:3,sequence_memory:3};
 /* PARRY: any incoming enemy attack (not a trick) pops a 450ms window over the
    current screen. tap in time -> the attack is stopped (no damage). miss -> it lands.
    Afterward the question timer stays frozen and the screen stays un-clickable for
@@ -3074,7 +3075,7 @@ function duelMiniResolve(key,res){
   // focus: the charge only fires if you actually COMPLETE the benchmark.
   // mess it up and nothing leaves \u2014 no partial damage.
   if(res && res.correct && chg>0){
-    let dmg=Math.min(48, Math.round(chg*(_CHG_PER[key]||3.5)) + (_MINI_TIER[key]||2)*4);
+    let dmg=Math.min(72, 34 + Math.round(chg*(_CHG_PER[key]||4.5)) + (_MINI_TIER[key]||2)*4);
     duel.dealtMe+=dmg;
     duel.hpOpp=Math.max(0,_HPMAX-duel.dealtMe-duel.selfOpp);
     duelHP(); firePulse(true, 1+chg/3, "H");
