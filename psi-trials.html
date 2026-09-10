@@ -3646,7 +3646,7 @@ function renameProfile(){
   const inp=$("newHandle");
   const h=inp.value.trim().slice(0,14).toUpperCase();
   if(!h){ inp.focus(); inp.placeholder="type new name first"; return; }
-  P().handle=h; S.demo=false; inp.value=""; save(); flushCloud();
+  P().handle=h; S.demo=false; inp.value=""; sanitizeProfile(P()); save(); flushCloud();
   renderHeader(); renderPMenu(); updateDemoBanner();
   if($("v-ranks").classList.contains("on")) renderRanks();
 }
