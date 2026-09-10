@@ -800,6 +800,11 @@
     position:relative;font-family:"Press Start 2P",monospace;font-size:20px;color:#fff;
     letter-spacing:1px;text-shadow:0 3px 0 var(--ink);
   }
+  .duel-parry .dp-ms{
+    position:absolute;left:50%;bottom:16%;transform:translateX(-50%);
+    font-family:"Silkscreen",monospace;font-weight:700;font-size:10px;letter-spacing:1px;
+    color:#fff;opacity:.8;text-shadow:0 2px 0 var(--ink);
+  }
   .duel-parry .dp-ring{
     position:absolute;width:160px;height:160px;color:var(--win);
     image-rendering:pixelated;filter:drop-shadow(0 0 5px var(--win));
@@ -2829,7 +2834,7 @@ function duelTakeHit(inc, live, ndTarget){
   }
   duel.parry={ t0:performance.now(), freezeT0:performance.now(), done:false, live, inc, ndTarget, pend:0 };
   const ov=document.createElement("div"); ov.id="duelParry"; ov.className="duel-parry";
-  ov.innerHTML=_pixelRingSVG()+'<div class="dp-word">PARRY</div>';
+  ov.innerHTML=_pixelRingSVG()+'<div class="dp-word">PARRY</div><div class="dp-ms">'+_PARRY_MS+' MS</div>';
   $("duel").appendChild(ov);
   { const rg=ov.querySelector(".dp-ring"); if(rg) rg.style.animationDuration=_PARRY_MS+"ms"; }
   const land=()=>{
