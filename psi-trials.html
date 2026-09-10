@@ -581,17 +581,12 @@
     background:var(--case-2);border:3px solid var(--ink);box-shadow:var(--shadow-sm);
   }
   .peekclose:active{transform:translate(2px,2px);box-shadow:none}
-  /* character shop */
-  #shop{position:fixed;inset:0;z-index:112;display:none;background:rgba(27,29,43,.5);overflow-y:auto;padding:24px 14px}
-  #shop.show{display:block}
-  .shopwrap{
-    max-width:720px;margin:0 auto;background:var(--paper);border:4px solid var(--ink);
-    box-shadow:10px 10px 0 var(--ink);padding:18px 18px 26px;position:relative;
-  }
-  .shophead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 44px 8px 4px}
-  .shoptitle{font-family:"Press Start 2P",monospace;font-size:13px;color:var(--pur-ink)}
+  /* character shop (nav view) */
+  .shopview{background:var(--case-2);border:3px solid var(--ink);box-shadow:var(--shadow);padding:16px 16px 22px}
+  .shophead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
+  .shophead .hd{margin:0}
   .shopcoins{font-family:"Press Start 2P",monospace;font-size:13px;color:var(--gold)}
-  .shopnote{font-size:12px;color:var(--ink-2);margin:0 4px 16px;line-height:1.5}
+  .shopnote{font-size:12px;color:var(--ink-2);margin:0 0 16px;line-height:1.5}
   .shopgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
   .sk-card{
     display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;
@@ -1058,6 +1053,7 @@
     <button class="tab" data-view="practice" aria-selected="true">TRAIN</button>
     <button class="tab" data-view="stats" aria-selected="false">STATS</button>
     <button class="tab" data-view="ranks" aria-selected="false">RANKS</button>
+    <button class="tab" data-view="shop" aria-selected="false">SHOP</button>
   </nav>
 </header>
 
@@ -1080,7 +1076,6 @@
         <div><button class="btn play" id="btnPlay">&#9654; TRAIN</button></div>
         <div><button class="btn duel" id="btnQuick">&#9889; QUICK MATCH</button></div>
         <div><button class="btn duel" id="btnDuel">&#9876; PRACTICE DUEL</button></div>
-        <div><button class="btn ghost" id="btnShop">&#128737; CHARACTER SHOP</button></div>
         <div class="idle-foot" id="idleFoot"></div>
       </div>
 
@@ -1170,6 +1165,17 @@
     </div>
   </section>
 
+  <section class="view" id="v-shop">
+    <div class="shopview">
+      <div class="shophead">
+        <h3 class="hd">Character Shop</h3>
+        <div class="shopcoins">&#9679; <b id="shopCoins">0</b></div>
+      </div>
+      <p class="shopnote">Earn a coin on a <b>1-in-3</b> chance from every live PvP match. Equip a skin to use it in duels.</p>
+      <div class="shopgrid" id="shopGrid"></div>
+    </div>
+  </section>
+
 </main>
 
 <div id="flash"></div>
@@ -1231,18 +1237,6 @@
       <svg id="pkHist" viewBox="0 0 600 70" preserveAspectRatio="none"></svg>
       <div class="hx"><span id="pkHistLo">&mdash;</span><span id="pkHistHi">&mdash;</span></div>
     </div>
-  </div>
-</div>
-
-<div id="shop" hidden>
-  <div class="shopwrap">
-    <button class="peekclose" id="shopClose">&times;</button>
-    <div class="shophead">
-      <div class="shoptitle">&#128737; CHARACTER SHOP</div>
-      <div class="shopcoins">&#9679; <b id="shopCoins">0</b></div>
-    </div>
-    <p class="shopnote">Earn a coin on a <b>1-in-3</b> chance from every live PvP match. Equip a skin to use it in duels.</p>
-    <div class="shopgrid" id="shopGrid"></div>
   </div>
 </div>
 
@@ -2338,9 +2332,7 @@ function openPeek(d){
 }
 function closePeek(){ $("peek").classList.remove("show"); $("peek").hidden=true; }
 
-/* ---------- character shop ---------- */
-function openShop(){ renderShop(); $("shop").hidden=false; $("shop").classList.add("show"); }
-function closeShop(){ $("shop").classList.remove("show"); $("shop").hidden=true; }
+/* ---------- character shop (a nav view) ---------- */
 function renderShop(){
   const p=P(); if(!p) return;
   p.owned = Array.isArray(p.owned) ? p.owned : ["operator"];
@@ -3486,6 +3478,7 @@ function showView(name){
   document.querySelectorAll(".view").forEach(v=>v.classList.toggle("on", v.id==="v-"+name));
   if(name==="stats") renderStats();
   if(name==="ranks") renderRanks();
+  if(name==="shop") renderShop();
 }
 
 /* ---------- profile menu ---------- */
@@ -3578,9 +3571,6 @@ function boot(){
 
   $("peekClose").addEventListener("click",closePeek);
   $("peek").addEventListener("click",e=>{ if(e.target.id==="peek") closePeek(); });
-  $("btnShop").addEventListener("click",()=>{ sfx("click"); openShop(); });
-  $("shopClose").addEventListener("click",closeShop);
-  $("shop").addEventListener("click",e=>{ if(e.target.id==="shop") closeShop(); });
   document.addEventListener("keydown",e=>{ if(e.key==="Escape" && $("peek").classList.contains("show")) closePeek(); });
   wireDuel();
 
