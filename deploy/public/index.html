@@ -581,6 +581,35 @@
     background:var(--case-2);border:3px solid var(--ink);box-shadow:var(--shadow-sm);
   }
   .peekclose:active{transform:translate(2px,2px);box-shadow:none}
+  /* character shop */
+  #shop{position:fixed;inset:0;z-index:112;display:none;background:rgba(27,29,43,.5);overflow-y:auto;padding:24px 14px}
+  #shop.show{display:block}
+  .shopwrap{
+    max-width:720px;margin:0 auto;background:var(--paper);border:4px solid var(--ink);
+    box-shadow:10px 10px 0 var(--ink);padding:18px 18px 26px;position:relative;
+  }
+  .shophead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px 44px 8px 4px}
+  .shoptitle{font-family:"Press Start 2P",monospace;font-size:13px;color:var(--pur-ink)}
+  .shopcoins{font-family:"Press Start 2P",monospace;font-size:13px;color:var(--gold)}
+  .shopnote{font-size:12px;color:var(--ink-2);margin:0 4px 16px;line-height:1.5}
+  .shopgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+  .sk-card{
+    display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;
+    background:var(--case-2);border:3px solid var(--ink);box-shadow:4px 4px 0 var(--ink);padding:14px 10px;
+  }
+  .sk-card.on{border-color:var(--pur-ink);box-shadow:4px 4px 0 var(--pur-ink)}
+  .sk-pic{width:96px;height:96px;display:grid;place-items:center;background:var(--paper);border:2px solid var(--line)}
+  .sk-pic img{width:80px;height:80px;image-rendering:pixelated}
+  .sk-name{font-family:"Silkscreen",monospace;font-weight:700;font-size:13px;text-transform:uppercase}
+  .sk-price{font-family:"Silkscreen",monospace;font-weight:700;font-size:10px;color:var(--gold)}
+  .sk-btn{
+    width:100%;font-family:"Silkscreen",monospace;font-weight:700;font-size:10px;letter-spacing:.5px;
+    padding:8px 6px;background:var(--case-2);border:2px solid var(--ink);box-shadow:2px 2px 0 var(--ink);
+  }
+  .sk-btn:active:not([disabled]){transform:translate(2px,2px);box-shadow:none}
+  .sk-btn[disabled]{opacity:.55}
+  .sk-btn.eq{background:var(--pur-soft);color:var(--pur-ink)}
+  .sk-btn.buy{background:var(--gold);color:var(--ink)}
   .peekhead{display:flex;align-items:center;gap:14px;margin:2px 40px 16px 4px}
   .peekhead .badge{width:44px;height:44px;flex:0 0 auto}
   .pkname{font-family:"Press Start 2P",monospace;font-size:14px}
@@ -731,15 +760,16 @@
   .dch-special .dch-genre{flex:1 1 auto}
   .dch-special .dch-genre .dg-t{font-size:16px}
   @media(max-width:560px){
-    /* phones: three short full-width rows — every genre fully visible, no scroll */
-    .dch-row{flex-direction:column;gap:9px}
+    /* phones: three full-width rows, tall enough to grip, well spread out */
+    #duel-cards{padding:16px 12px 18px}
+    .dch-row{flex-direction:column;gap:16px}
     .dch-row .dch-card{
-      width:100%;aspect-ratio:auto;min-height:0;flex-direction:row;align-items:center;gap:12px;
-      padding:12px 14px;border-left:11px solid var(--cc,var(--pur-ink));
+      width:100%;aspect-ratio:auto;min-height:84px;flex-direction:row;align-items:center;gap:14px;
+      padding:18px 16px;border-left:13px solid var(--cc,var(--pur-ink));
     }
-    .dch-row .dch-card .dch-head{flex:0 0 auto;flex-direction:column;align-items:flex-end;gap:4px;min-height:0}
+    .dch-row .dch-card .dch-head{flex:0 0 auto;flex-direction:column;align-items:flex-end;gap:5px;min-height:0}
     .dch-row .dch-card .dch-genre{order:-1;flex:1 1 auto}
-    .dch-row .dch-card .dch-genre .dg-t{font-size:16px;line-height:1.2}
+    .dch-row .dch-card .dch-genre .dg-t{font-size:18px;line-height:1.2}
     .dch-row .dch-card::after{display:none}
   }
   .arena-toast{
@@ -1050,6 +1080,7 @@
         <div><button class="btn play" id="btnPlay">&#9654; TRAIN</button></div>
         <div><button class="btn duel" id="btnQuick">&#9889; QUICK MATCH</button></div>
         <div><button class="btn duel" id="btnDuel">&#9876; PRACTICE DUEL</button></div>
+        <div><button class="btn ghost" id="btnShop">&#128737; CHARACTER SHOP</button></div>
         <div class="idle-foot" id="idleFoot"></div>
       </div>
 
@@ -1203,6 +1234,18 @@
   </div>
 </div>
 
+<div id="shop" hidden>
+  <div class="shopwrap">
+    <button class="peekclose" id="shopClose">&times;</button>
+    <div class="shophead">
+      <div class="shoptitle">&#128737; CHARACTER SHOP</div>
+      <div class="shopcoins">&#9679; <b id="shopCoins">0</b></div>
+    </div>
+    <p class="shopnote">Earn a coin on a <b>1-in-3</b> chance from every live PvP match. Equip a skin to use it in duels.</p>
+    <div class="shopgrid" id="shopGrid"></div>
+  </div>
+</div>
+
 <div id="duel" hidden>
   <div class="duel-top">
     <span class="dt-title" id="dtTitle">DUEL</span>
@@ -1314,6 +1357,16 @@ const SPR_PLAYER = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAA
 const SPR_ENEMY = "data:image/png;base64,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";
 const SPR_POW_P = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAABiklEQVR4AeyX0anCQBBFk9dA5DUg/gTSgNhFak0XYgOB/IgNiKlAuYHAsMSPza4wO3OF0d11Izlnbgz5q5y/KMB5AComgAlwboCXgPMA8E9Q/SVwu13fsnInVr2A8/lSHw7/1VqQkVOCegGAbdu2RmEMETklFCEA4KhfSFAvYJqm9zAMS0kJx+MJ0+RSLwBd77puAYWIZZDxTb0AsEoJmKdUeGwRAsKTbpomXNo9L1LAPM+7gcMDixQQQqTMixCAO8E4jimcX49VL0DC931ffyXZ+YV6AbgDABwFRgh5vZ7V43HHNLnUC1gJAY4CPNbwjIDP1CpCAMAlaC54/KZ6AXjwQdfXyglfhAAAy8JJ5yz1CcgJu/VbFLBlxdMaE+Cp21us5hOwBS3XKEDa8DhmAjx2XTIzAdKGxzET4LHrkpkJkDY8jpkAj12XzEyAtOFxzARY63osDxMQa8zafibAWkdjeZiAWGPW9jMB1joay8MExBqztp8JsNbRWB4mINaYtf1MQOkdTT3/DwAAAP//i8Xw/QAAAAZJREFUAwCthmOBOLRGVgAAAABJRU5ErkJgggAA";
 const SPR_POW_E = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAABgElEQVR4AeyX0cnCQBCEz7+ByN+A+BJIA2IXqTVdiA0E8iI2IKaCyAROFsnL4Qp7uyOMbM7juPl2ziR/KfiHAIIHIDEBTEBwAjwCwQPAP0H1I3C9XhYp6wlTBQDj+/1/yjqdzrswALJ5GG7bdgehti6VBHyat25a7k8FwOFwXNfMXR+GYYGmaVrWHwx/qQCQ/mAc113XpQwE11alDgBGLZvH/qTUADRNI9etplYDMM9zNablRtUAyEVrqn8CYBzHVMMdAI1SB9D3/fr0VwsEFQD3+y09n4931wEBCnMbzM/8GUIt8Vc9AhkCFoVqgaByBGAYAgSkIAvvCBi3LFUAMAoIUhizLHUAls1u7Y0AtqhEGmMCInV7y6v7BGyZlmMEIGlErJmAiF2XnpkASSNizQRE7Lr0zARIGhFrJiBi16VnJkDSiFgzAd66XuqHCSgl5m0+E+Cto6V+mIBSYt7mMwHeOlrqhwkoJeZtPhPgraOlfpiAUmLe5jMBtXf02/2/AAAA//+RmURAAAAABklEQVQDAHOEY4H9u1ySAAAAAElFTkSuQmCC";
+const SPR_DEVIL_F = "data:image/png;base64,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";
+const SPR_DEVIL_B = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAE0ElEQVR4AexZwW7bRhB9Q6VAevaxVupeHPhuwKcUhi/Nb8iWezFgX32Kmx6aky/+ADvKpzQ/EfcUJOkHuIEBR5a4nTfkShRNsaXFZRCZBB93d3a4O+/t7EqyIzzwqxXggScA2gxoM+CBK9BugQeeAO0hGHILOM0uQot734u+/58ThxLAnZ+fl01OYkXIvuPHoF/WXms9lABlQbqLiwsQg9evMRgM8ObNAAcHB3wnKFlOkEdQAdIsIKkJSNwHETuHOI4xHsfY3NzE4eEhu8w3fZftoAgqACMnEYJ1I6+kWc+j1+vh7Owsbw7eDiWA7O7u3gl+OByCyyvaI3xoCbPAtgSF8rCuBh6hBLDQKYIHDZ1Oh0WKRAGRaQgiic2/w1KdE6NW6rjzY0xnz/cs3mbgHulobGpViXIniKRtNXELEClpPPv5mVoxdWArAEIKkA3XiERRBHJ2ZI8YSZm48XzwoOXtn2/tHdZDIgo5eH7s8fgWLtZdbwIsxI9HCZGfonK7UQEePfoOsSrALLBIlYLPgvF4bKaKDx0hPUUrvujdGxUgmdTBEoANTQIvgD8gX5y8wOrqD+wtxUX5N83Sd7OdTQogPOT6/X09B0RFoBBcwGk47P/44SM+ffpbpZna59XqEKFJAchDut1VljCGmgrMgFz6W5c5FT9mVSv2+d/WpgVINqwSZ4QigkjB9D8+PoZeZeRJ3HHVCfVFr+DLFu1V0LgAUeaLzyRQFWR9fX3SzFXuEGd/hnyZaHQtRWMC/LS25p78+MS5OeGurKyg2+26NfXTiI00S642ofWie85oRa7FtiYEMDK/PH+Ol7+9xO+KolA2Njawvb2Nk5MTkLDHjK9uF648ofaFyesYCC0AyYPf8La2tjhfAiUCImnZk1tgZ2fH6tbHfiKxgDZ+SgAgcQJ1XCEFcCROzA2UBIl5Ds70s94MeWvX9QglgJH3QfKjztcLywIRRHSRU9SZ8vn5QwkwM4+IfvFJPgDNbgtrD2veeSh1XF1dmT3Uytvg+ggmAFedf+7SOewmKVaY1KoHoI+sBjN1AEdHR6iDvA5VeocQgByVn4A/f5FeJEhRTAjzACwvtG5260D+KrbmvRZohxDATn0fE7Pgj1evQJK0sdRfAawqyM9BhKU2v8IdRADPg+RZH90OMRqNjKhIQtZpx1QI6Anh4P21q7E7qACexZcvQ1y+e+ebSck9kdSMvEBmtgwauoIK4M+AKBLEWcJat63AUunbHTMnGmKdmSaoAD6llSdubm4m03phaHcpcUcVJh7NVYIIQOKEpyEicPofIN9mSRE0MRBpn2+z9Hj6dO6vQ+9SSxlEgHxk/L3/z+fPeTMkimzduR2ynfz8v7z8S7K2UPVGBBBxePz9YzAriCwZywQVImtL640cCo0I8P79B3RXu3bKk3BKcG5R+gNq7lv362hEAIZ2fX2dZMD9/vzNIYKgMQFOT091y0eIOh2MbkcqhlPE+q/xe/0/oDYxQggge3t7M9Bo7UDTw02I/V/3tX9XsSf9ft9svV5vpvTvaBn0DiFA0IDrHrwVoG5Fv/Z4VedvM6CqYsvm32bAsq1oVT5tBlRVbNn82wxYthWtyqfNgKqKLZt/mwHLtqJV+bQZUFWxZfNvM+BbX9FF4/8XAAD//0JXkOEAAAAGSURBVAMAECmgkI/vbjMAAAAASUVORK5CYIIA";
+/* character skins \u2014 front sprite faces the camera (#fMe), back sprite faces away (#fEnemy) */
+const SKINS = {
+  operator:{ name:"Operator", front:SPR_PLAYER,  back:SPR_ENEMY,   price:0 },
+  devil:   { name:"Devil",    front:SPR_DEVIL_F, back:SPR_DEVIL_B, price:100 }
+};
+const SKIN_KEYS = Object.keys(SKINS);
+function skinFront(k){ return (SKINS[k]||SKINS.operator).front; }
+function skinBack(k){ return (SKINS[k]||SKINS.operator).back; }
 const MINI_KEYS = ["reaction_time","number_memory","verbal_memory","visual_memory","chimp_test","sequence_memory"];
 const VM_WORDS = ["apple","river","candle","planet","forest","silver","engine","garden","pillow","marble","rocket","tunnel","ladder","pepper","saddle","tiger","cabin","maple","comet","pencil","jacket","meadow","anchor","bottle","camera","dragon","feather","guitar","hammer","island","jungle","kettle","lantern","mirror","needle","orbit","puzzle","quartz","ribbon","sponge","temple","velvet","walnut","yacht","zebra","bridge","copper","diamond","ember","falcon"];
 const DLABEL = {E:"EASY",M:"MED",H:"HARD"};
@@ -1502,10 +1555,11 @@ function flushCloud(){
   if(!CLOUD || !fbUser || !_cloudDirty) return;
   const p=P(); if(!p) return;
   _cloudDirty=false;
-  const {handle,rating,best,bestStreak,games,bestScore,lastScore,hist,gseen,gcorr,solved,wins,losses}=p;
+  const {handle,rating,best,bestStreak,games,bestScore,lastScore,hist,gseen,gcorr,solved,wins,losses,coins,skin,owned,_grant100}=p;
   fdb.collection("profiles").doc(fbUser.uid).set(
     {handle,rating,best,bestStreak,games,bestScore,lastScore,hist,gseen,gcorr,solved,
      wins:wins||0,losses:losses||0,
+     coins:coins||0, skin:skin||"operator", owned:owned||["operator"], _grant100:_grant100||0,
      updated:firebase.firestore.FieldValue.serverTimestamp()}, {merge:true}
   ).catch(e=>console.warn("[psi] cloud save failed:", e.code||e.message));
 }
@@ -1514,7 +1568,7 @@ function uid(){ return "p"+Math.random().toString(36).slice(2,9); }
 function blankProfile(handle){
   return { handle:handle, created:Date.now(), rating:400, best:400, bestStreak:0,
            solved:{}, gseen:{}, gcorr:{}, hist:[400], games:0, bestScore:0, lastScore:null,
-           wins:0, losses:0 };
+           wins:0, losses:0, coins:0, skin:"operator", owned:["operator"] };
 }
 function applyResult(p,type,diff,correct,streakBefore){
   let delta;
@@ -1638,6 +1692,13 @@ function sanitizeProfile(p){
   if(!isFinite(p.best)||p.best<p.rating) p.best=p.rating;
   p.best=Math.max(0,Math.round(p.best));
   p.wins=Math.max(0,p.wins|0); p.losses=Math.max(0,p.losses|0);
+  p.coins=Math.max(0,p.coins|0);
+  if(!Array.isArray(p.owned)) p.owned=["operator"];
+  if(p.owned.indexOf("operator")<0) p.owned.unshift("operator");
+  p.owned=p.owned.filter(k=>SKINS[k]);
+  if(!SKINS[p.skin] || p.owned.indexOf(p.skin)<0) p.skin="operator";
+  // one-time coin grant for the maker's test account
+  if((p.handle||"").toLowerCase()==="christer" && !p._grant100){ p.coins+=100; p._grant100=1; }
   return p;
 }
 function enterApp(){
@@ -2277,6 +2338,40 @@ function openPeek(d){
 }
 function closePeek(){ $("peek").classList.remove("show"); $("peek").hidden=true; }
 
+/* ---------- character shop ---------- */
+function openShop(){ renderShop(); $("shop").hidden=false; $("shop").classList.add("show"); }
+function closeShop(){ $("shop").classList.remove("show"); $("shop").hidden=true; }
+function renderShop(){
+  const p=P(); if(!p) return;
+  p.owned = Array.isArray(p.owned) ? p.owned : ["operator"];
+  $("shopCoins").textContent = p.coins||0;
+  $("shopGrid").innerHTML = SKIN_KEYS.map(k=>{
+    const s=SKINS[k], owned=p.owned.indexOf(k)>=0, equipped=(p.skin||"operator")===k;
+    const afford=(p.coins||0)>=s.price;
+    let btn;
+    if(equipped) btn='<button class="sk-btn" disabled>EQUIPPED</button>';
+    else if(owned) btn='<button class="sk-btn eq" data-eq="'+k+'">EQUIP</button>';
+    else if(afford) btn='<button class="sk-btn buy" data-buy="'+k+'">BUY &#9679; '+s.price+'</button>';
+    else btn='<button class="sk-btn" disabled>&#128274; '+s.price+'</button>';
+    return '<div class="sk-card'+(equipped?' on':'')+'">'+
+      '<div class="sk-pic"><img src="'+s.front+'" alt=""></div>'+
+      '<div class="sk-name">'+escapeHtml(s.name)+'</div>'+
+      '<div class="sk-price">'+(s.price? '&#9679; '+s.price : 'default')+'</div>'+
+      btn+'</div>';
+  }).join("");
+  $("shopGrid").querySelectorAll("[data-eq]").forEach(b=>b.addEventListener("click",()=>{
+    p.skin=b.dataset.eq; save(); flushCloud(); sfx("select"); renderShop();
+  }));
+  $("shopGrid").querySelectorAll("[data-buy]").forEach(b=>b.addEventListener("click",()=>{
+    const k=b.dataset.buy, s=SKINS[k];
+    if((p.coins||0)<s.price) return;
+    p.coins-=s.price;
+    if(p.owned.indexOf(k)<0) p.owned.push(k);
+    p.skin=k;
+    save(); flushCloud(); sfx("perfect"); burst(80); renderShop();
+  }));
+}
+
 /* ===================== PvP DUEL ===================== */
 function tintPNG(src,hex,cb){
   const img=new Image();
@@ -2310,8 +2405,8 @@ function duelHP(){
 function duelDraw(){
   $("feName").textContent=duel.opp.handle;
   $("fmName").textContent=duel.me.handle;
-  $("fEnemy").innerHTML='<img src="'+SPR_ENEMY+'" alt="">';
-  $("fMe").innerHTML='<img src="'+SPR_PLAYER+'" alt="">';
+  $("fEnemy").innerHTML='<img src="'+skinBack(duel.opp.skin)+'" alt="">';
+  $("fMe").innerHTML='<img src="'+skinFront(duel.me.skin)+'" alt="">';
   duelHP();
 }
 function confettiBurstAt(el,col,n,reach){
@@ -2489,10 +2584,10 @@ function genSeqQ(){
     if(c>0 && !used.has(c)){ used.add(c); opts.push(c); }
   }
   while(opts.length<3){ const c=truth+drand(3,13); if(!used.has(c)){ used.add(c); opts.push(c); } }
-  dshuf(opts);
+  const so=dshuf(opts).map(String), at=String(truth);
   return { cat:"LR", type:"pattern_next", kind:"mc", d:"E", name:"What Comes Next",
-    q:seq.join(",   ")+",   ?", o:opts.map(String),
-    a:LETTERS[opts.indexOf(String(truth))], at:String(truth),
+    q:seq.join(",   ")+",   ?", o:so,
+    a:LETTERS[so.indexOf(at)], at:at,
     ex:ex+" Next term is "+truth+".", t:16000, id:"GS"+(Math.random()*1e9|0) };
 }
 function _duelWordPool(){
@@ -3006,14 +3101,26 @@ function duelTick(){
   if(duel.mode==="live"&&duel.ref){
     duel.hb=(duel.hb||0)+1;
     if(duel.hb%16===0){ const f={}; f[duel.fSeenMe]=Date.now(); duel.ref.update(f).catch(()=>{}); }
+    if(!duel.prep && !duel._claiming){          // reconcile: catch any KO that slipped past every path
+      if(duel.hpMe<=0) duelClaimWin(false);
+      else if(duel.hpOpp<=0) duelClaimWin(true);
+    }
   }
 }
 function duelSyncLive(d){
   if(!duel||duel.mode!=="live"||duel.over) return;
+  if(d.status==="done" || d.winner){
+    if(d.winner){ duelFinish(d.winner===duel.myKey,true,
+      d.winBy==="dc"&&d.winner===duel.myKey?"Opponent disconnected.":
+      d.winBy==="forfeit"&&d.winner===duel.myKey?"Opponent forfeited.":undefined); return; }
+    duel.dealtOpp=d[duel.fDmgOpp]||duel.dealtOpp; duel.selfOpp=d[duel.fSelfOpp]||duel.selfOpp; duelHP();
+    if(duel.hpMe<=0){ duelFinish(false,true); return; }
+    if(duel.hpOpp<=0){ duelFinish(true,true); return; }
+    duelFinish(true,true,"Opponent left."); return;
+  }
   const nd=d[duel.fDmgOpp]||0;
   if(duel.prep){                       // still on the rules screen \u2014 track state, no parry, no KO, no disconnect
     duel.dealtOpp=nd; duel.selfOpp=d[duel.fSelfOpp]||0; duelHP();
-    if(d.winner) duelFinish(d.winner===duel.myKey,true);
     return;
   }
   if(nd>duel.dealtOpp){ duelTakeHit(nd-duel.dealtOpp, true, nd); }   // parry window; commits target on miss
@@ -3026,12 +3133,6 @@ function duelSyncLive(d){
     if(!duel.trapped){ duel.trapped=true; if(!duel.card||duel.card.q.kind!=="trap") duelNext(); }
   }
   duelSetOppTricked((d[duel.fTrapOpp]||0) >= (duel.trapOppN||0) && (duel.trapOppN||0) > 0);
-  if(d.winner){
-    duelFinish(d.winner===duel.myKey, true,
-      d.winBy==="dc" && d.winner===duel.myKey ? "Opponent disconnected." :
-      d.winBy==="forfeit" && d.winner===duel.myKey ? "Opponent forfeited." : undefined);
-    return;
-  }
   if(duel.hpMe<=0){ duelClaimWin(false); return; }
   if(duel.hpOpp<=0){ duelClaimWin(true); return; }
   const os=d[duel.fSeenOpp]||0;
@@ -3047,7 +3148,7 @@ async function quickMatch(){
   if(!CLOUD || !fdb || !fbUser){ toast("Quick Match needs the live site + sign-in."); return; }
   if(duel && !duel.over) return;
   const me=P(), meT=TIERS[tierIndex(me.rating)];
-  const meEntry={ uid:fbUser.uid, handle:me.handle, tier:meT.name, col:meT.col, rating:me.rating||0, ts:Date.now() };
+  const meEntry={ uid:fbUser.uid, handle:me.handle, tier:meT.name, col:meT.col, skin:me.skin||"operator", rating:me.rating||0, ts:Date.now() };
   try{ await fdb.collection("matchmaking").doc(fbUser.uid).set(meEntry); }
   catch(e){ toast("Could not join queue: "+(e.code||e.message)); return; }
   showChal("mm","SEARCHING\u2026","Looking for an opponent",null);
@@ -3063,8 +3164,8 @@ async function quickMatch(){
       try{
         const ref=await fdb.collection("duels").add({
           status:"active", mm:true, createdMs:Date.now(),
-          a:{uid:fbUser.uid,handle:meEntry.handle,tier:meEntry.tier,col:meEntry.col},
-          b:{uid:other.uid,handle:other.handle,tier:other.tier||oT.name,col:other.col||oT.col},
+          a:{uid:fbUser.uid,handle:meEntry.handle,tier:meEntry.tier,col:meEntry.col,skin:meEntry.skin},
+          b:{uid:other.uid,handle:other.handle,tier:other.tier||oT.name,col:other.col||oT.col,skin:other.skin||"operator"},
           da:0,db:0,sa:0,sb:0,trapA:0,trapB:0,winner:null,seenA:Date.now(),seenB:0
         });
         fdb.collection("matchmaking").doc(fbUser.uid).delete().catch(()=>{});
@@ -3090,14 +3191,14 @@ function enterDuel(mode,key,ref,data){
     fDmgOpp:key==="a"?"db":"da", fSelfOpp:key==="a"?"sb":"sa",
     fSeenMe:key==="a"?"seenA":"seenB", fSeenOpp:key==="a"?"seenB":"seenA",
     fTrapMe:key==="a"?"trapA":"trapB", fTrapOpp:key==="a"?"trapB":"trapA",
-    me:{handle:meP.handle||"YOU", col:meT.col, tier:meT.name},
-    opp:{handle:mode==="bot"?"TRAINING DUMMY":"OPPONENT", col:mode==="bot"?"#c2506b":"#6d708f", tier:"\u2014"},
+    me:{handle:meP.handle||"YOU", col:meT.col, tier:meT.name, skin:meP.skin||"operator"},
+    opp:{handle:mode==="bot"?"TRAINING DUMMY":"OPPONENT", col:mode==="bot"?"#c2506b":"#6d708f", tier:"\u2014", skin:"operator"},
     hpMe:_HPMAX, hpOpp:_HPMAX, dealtMe:0, dealtOpp:0, selfMe:0, selfOpp:0,
     miniKey:null, miniMode:"focus", streak:0, special:false, parry:null, parryRefund:0,
     trapped:false, trapBotLeft:0, trapOppN:0, trapSeen:0, prep:true,
     botNext: performance.now()+5200+Math.random()*6000
   };
-  if(mode==="live" && data){ const o = key==="a"?data.b:data.a; duel.opp={handle:o.handle,col:o.col||"#6d708f",tier:o.tier||"\u2014"}; }
+  if(mode==="live" && data){ const o = key==="a"?data.b:data.a; duel.opp={handle:o.handle,col:o.col||"#6d708f",tier:o.tier||"\u2014",skin:o.skin||"operator"}; }
   $("dtTitle").textContent = mode==="bot" ? "PRACTICE DUEL" : "DUEL \u2014 "+duel.opp.handle;
   $("duel").style.setProperty("--cg", duel.me.col);
   $("duel-rotate").style.display="";
@@ -3156,7 +3257,12 @@ function duelFinish(iWon,fromLive,msg){
   if(duelUnsub){ duelUnsub(); duelUnsub=null; }
   const p=P();
   const rated = duel.mode==="live";
-  if(p && rated){ if(iWon) p.wins=(p.wins||0)+1; else p.losses=(p.losses||0)+1; save(); flushCloud(); }
+  let gotCoin=false;
+  if(p && rated){
+    if(iWon) p.wins=(p.wins||0)+1; else p.losses=(p.losses||0)+1;
+    if(Math.random()<1/3){ p.coins=(p.coins||0)+1; gotCoin=true; }   // 1-in-3 per real PvP match
+    save(); flushCloud();
+  }
   if(rated) duelRate(iWon ? _DUEL_WIN_RATING : -_DUEL_WIN_RATING);
   if(duel.ref) duel.ref.update({status:"done"}).catch(()=>{});
   if(iWon){
@@ -3176,7 +3282,8 @@ function duelFinish(iWon,fromLive,msg){
     (msg?'<div style="margin-top:10px;color:var(--ink-2);font-size:13px">'+escapeHtml(msg)+'</div>':'')+
     (rated
       ? '<div style="margin-top:8px;font-family:\'Press Start 2P\',monospace;font-size:12px;color:'+(iWon?"var(--win)":"var(--miss)")+'">'+(iWon?"+":"\u2212")+_DUEL_WIN_RATING+' RATING</div>'+
-        '<div style="margin-top:10px;font-family:Silkscreen,monospace;font-weight:700;color:var(--ink-2)">'+((p&&p.wins)||0)+' W \u00b7 '+((p&&p.losses)||0)+' L</div>'
+        (gotCoin?'<div style="margin-top:8px;font-family:\'Press Start 2P\',monospace;font-size:12px;color:var(--gold)">&#9679; +1 COIN</div>':'')+
+        '<div style="margin-top:10px;font-family:Silkscreen,monospace;font-weight:700;color:var(--ink-2)">'+((p&&p.wins)||0)+' W \u00b7 '+((p&&p.losses)||0)+' L &nbsp;\u00b7&nbsp; &#9679; '+((p&&p.coins)||0)+'</div>'
       : '<div style="margin-top:10px;font-family:Silkscreen,monospace;font-weight:700;color:var(--ink-2)">PRACTICE \u00b7 nothing scored</div>')+
     '<button class="btn primary" id="duelDone" style="margin-top:20px">BACK</button></div>';
   $("duelDone").addEventListener("click",exitDuel);
@@ -3215,8 +3322,8 @@ async function sendChallengeTo(oppId, oppH, oppR){
   try{
     ref=await fdb.collection("duels").add({
       status:"pending", createdMs:Date.now(),
-      a:{uid:fbUser.uid,handle:me.handle,tier:meT.name,col:meT.col},
-      b:{uid:oppId,handle:oppH,tier:oT.name,col:oT.col},
+      a:{uid:fbUser.uid,handle:me.handle,tier:meT.name,col:meT.col,skin:me.skin||"operator"},
+      b:{uid:oppId,handle:oppH,tier:oT.name,col:oT.col,skin:"operator"},
       da:0,db:0,sa:0,sb:0,trapA:0,trapB:0,winner:null,seenA:Date.now(),seenB:0
     });
   }catch(e){ toast("Could not send challenge: "+(e.code||e.message)); return; }
@@ -3286,7 +3393,7 @@ function wireDuel(){
   $("rotAnyway").addEventListener("click",()=>{ $("duel-rotate").style.display="none"; });
   $("cbYes").addEventListener("click",async ()=>{
     const ref=pendingChalRef; if(!ref) return;
-    try{ await ref.update({status:"active", seenB:Date.now()}); }catch(e){ toast("Could not accept."); return; }
+    try{ await ref.update({status:"active", seenB:Date.now(), "b.skin":(P().skin||"operator")}); }catch(e){ toast("Could not accept."); return; }
     let d; try{ d=(await ref.get()).data(); }catch(e){ d=null; }
     enterDuel("live","b",ref,d);
   });
@@ -3471,6 +3578,9 @@ function boot(){
 
   $("peekClose").addEventListener("click",closePeek);
   $("peek").addEventListener("click",e=>{ if(e.target.id==="peek") closePeek(); });
+  $("btnShop").addEventListener("click",()=>{ sfx("click"); openShop(); });
+  $("shopClose").addEventListener("click",closeShop);
+  $("shop").addEventListener("click",e=>{ if(e.target.id==="shop") closeShop(); });
   document.addEventListener("keydown",e=>{ if(e.key==="Escape" && $("peek").classList.contains("show")) closePeek(); });
   wireDuel();
 
