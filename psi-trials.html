@@ -2664,8 +2664,8 @@ function _dcard(forceQ){
 /* ---- pick-a-card selection screen ---- */
 const _STREAK_SPECIAL = 3;    // correct-in-a-row needed to earn a FOCUS/TRICK special
 const _TOUCH = (typeof matchMedia==="function" && matchMedia("(max-width:640px), (pointer:coarse)").matches) || "ontouchstart" in window;
-const _PARRY_MS = _TOUCH ? 650 : 450;         // tap <= this to parry (stop) an incoming attack \u2014 roomier on phones
-const _PARRY_BUFFER = _TOUCH ? 550 : 400;     // after a parry resolves: timer frozen + no clicks for this long
+const _PARRY_MS = _TOUCH ? 350 : 450;         // tap <= this to parry (stop) an incoming attack (tighter on phones)
+const _PARRY_BUFFER = 400;                    // after a parry resolves: timer frozen + no clicks for this long
 const _DUEL_MINIS = MINI_KEYS.filter(k=>k!=="reaction_time");
 function _readLen(q){ return (q.q?q.q.length:0) + (q.o?q.o.reduce((a,o)=>a+o.length,0):0); }
 /* one clean 3-tier ladder used for colour, damage and special-points */
