@@ -687,7 +687,9 @@
   .fighter{position:absolute}
   .fighter img{display:block;image-rendering:pixelated;filter:drop-shadow(0 2px 0 rgba(27,29,43,.15))}
   .fighter.enemy{right:14px;top:20px}
-  .fighter.enemy img{width:74px;height:74px}
+  .fighter.enemy img{width:74px;height:74px;transform-origin:bottom center}
+  .fighter.enemy.big{right:6px;top:auto;bottom:24px}
+  .fighter.enemy.big img{transform:scale(1.42)}
   .fighter.me{left:20px;bottom:0;width:158px;height:100px;overflow:hidden}
   .fighter.me img{width:158px;height:158px;margin-top:-2px}
   .fighter.hurt img{animation:fhurt .3s ease}
@@ -2578,6 +2580,7 @@ function duelSyncHeal(){                 // push my heal accumulator to the duel
 function duelDraw(){
   $("feName").textContent=duel.opp.handle;
   $("fmName").textContent=duel.me.handle;
+  $("fEnemy").classList.toggle("big", duel.opp.skin!=="operator");   // operator is well-sized; scale the rest up
   $("fEnemy").innerHTML='<img src="'+skinFront(duel.opp.skin)+'" alt="">';
   $("fMe").innerHTML='<img src="'+skinBack(duel.me.skin)+'" alt="">';
   duelHP();
