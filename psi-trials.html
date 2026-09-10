@@ -2391,10 +2391,15 @@ const _HPMAX = 200;
 function hpCls(pct){ return pct<=25?"low":pct<=55?"mid":""; }
 function setHp(el,pct){ const p=Math.max(0,Math.min(100,pct)); el.style.right=(100-p)+"%"; el.className="hpfill "+hpCls(p); }
 function duelHP(){
-  duel.hpMe  = Math.max(0, Math.min(_HPMAX, _HPMAX - duel.dealtOpp - duel.selfMe + (duel.parryRefund||0)));
-  duel.hpOpp = Math.max(0, _HPMAX - duel.dealtMe - duel.selfOpp);
+  // heal (from HEAL cards + successful parries) is a SYNCED accumulator, so both
+  // clients compute the same HP for both fighters.
+  duel.hpMe  = Math.max(0, Math.min(_HPMAX, _HPMAX - duel.dealtOpp - duel.selfMe  + (duel.heal||0)));
+  duel.hpOpp = Math.max(0, Math.min(_HPMAX, _HPMAX - duel.dealtMe  - duel.selfOpp + (duel.healOpp||0)));
   setHp($("feHp"),duel.hpOpp/_HPMAX*100); $("feHpN").textContent=Math.round(duel.hpOpp);
   setHp($("fmHp"),duel.hpMe/_HPMAX*100);  $("fmHpN").textContent=Math.round(duel.hpMe);
+}
+function duelSyncHeal(){                 // push my heal accumulator to the duel doc
+  if(duel && duel.mode==="live" && duel.ref){ const f={}; f[duel.fHealMe]=duel.heal||0; duel.ref.update(f).catch(()=>{}); }
 }
 function duelDraw(){
   $("feName").textContent=duel.opp.handle;
@@ -2765,8 +2770,8 @@ function duelHeal(){
   if(!duel||duel.over) return;
   ensureAC();
   const amt=Math.round(_HPMAX/4);
-  duel.parryRefund=(duel.parryRefund||0)+amt;   // healing pool; duelHP() clamps to _HPMAX
-  duelHP();
+  duel.heal=(duel.heal||0)+amt;   // synced healing pool; duelHP() clamps to _HPMAX
+  duelHP(); duelSyncHeal();
   sfx("perfect");
   confettiBurstAt($("fMe"), "#3fbf87", 22, 92);
   toastArena("HEAL  +"+amt+" HP");
@@ -2831,7 +2836,7 @@ function duelTakeHit(inc, live, ndTarget){
     return false;
   };
   const parried=()=>{                 // in time: the attack is simply stopped
-    if(live && duel.parry.ndTarget!=null){ duel.dealtOpp=duel.parry.ndTarget; duel.parryRefund=(duel.parryRefund||0)+inc; }
+    if(live && duel.parry.ndTarget!=null){ duel.dealtOpp=duel.parry.ndTarget; duel.heal=(duel.heal||0)+inc; duelSyncHeal(); }
     ensureAC(); sfx("perfect");
     parryShield();
     duelHP();
@@ -3103,24 +3108,37 @@ function duelTick(){
 }
 function duelSyncLive(d){
   if(!duel||duel.mode!=="live"||duel.over) return;
-  if(d.status==="done" || d.winner){
-    if(d.winner){ duelFinish(d.winner===duel.myKey,true,
-      d.winBy==="dc"&&d.winner===duel.myKey?"Opponent disconnected.":
-      d.winBy==="forfeit"&&d.winner===duel.myKey?"Opponent forfeited.":undefined); return; }
-    duel.dealtOpp=d[duel.fDmgOpp]||duel.dealtOpp; duel.selfOpp=d[duel.fSelfOpp]||duel.selfOpp; duelHP();
-    if(duel.hpMe<=0){ duelFinish(false,true); return; }
-    if(duel.hpOpp<=0){ duelFinish(true,true); return; }
-    duelFinish(true,true,"Opponent left."); return;
-  }
-  const nd=d[duel.fDmgOpp]||0;
-  if(duel.prep){                       // still on the rules screen \u2014 track state, no parry, no KO, no disconnect
-    duel.dealtOpp=nd; duel.selfOpp=d[duel.fSelfOpp]||0; duelHP();
+  // pull every authoritative field so BOTH clients hold identical state
+  duel.dealtMe = Math.max(duel.dealtMe, d[duel.fDmgMe]||0);   // my own damage can only grow
+  duel.selfMe  = Math.max(duel.selfMe,  d[duel.fSelfMe]||0);
+  duel.heal    = Math.max(duel.heal||0, d[duel.fHealMe]||0);
+  duel.selfOpp = d[duel.fSelfOpp]||0;
+  duel.healOpp = d[duel.fHealOpp]||0;
+
+  if(d.winner){                          // decided \u2014 the one authoritative outcome
+    duelFinish(d.winner===duel.myKey, true,
+      d.winner===duel.myKey && d.winBy==="dc"       ? "Opponent disconnected." :
+      d.winner===duel.myKey && d.winBy==="forfeit"  ? "Opponent forfeited." :
+      d.winner===duel.myKey && d.winBy==="left"     ? "Opponent left." : undefined);
     return;
   }
+
+  const nd=d[duel.fDmgOpp]||0;
+  if(duel.prep){                         // rules screen: track state only
+    duel.dealtOpp=nd; duelHP();
+    return;
+  }
+
+  if(d.status==="done"){                 // doc closed but no winner yet (stale/other client) \u2014 claim it
+    duel.dealtOpp=nd; duelHP();
+    duelClaimWin(duel.hpMe>0 && duel.hpOpp<=0 ? true : duel.hpMe<=0 ? false : (duel.hpMe>=duel.hpOpp), "left");
+    return;
+  }
+
   if(nd>duel.dealtOpp){ duelTakeHit(nd-duel.dealtOpp, true, nd); }   // parry window; commits target on miss
   else duel.dealtOpp=nd;
-  duel.selfOpp=d[duel.fSelfOpp]||0;
   duelHP();
+
   const tm=d[duel.fTrapMe]||0;
   if(tm>(duel.trapSeen||0)){
     duel.trapSeen=tm;
@@ -3160,7 +3178,7 @@ async function quickMatch(){
           status:"active", mm:true, createdMs:Date.now(),
           a:{uid:fbUser.uid,handle:meEntry.handle,tier:meEntry.tier,col:meEntry.col,skin:meEntry.skin},
           b:{uid:other.uid,handle:other.handle,tier:other.tier||oT.name,col:other.col||oT.col,skin:other.skin||"operator"},
-          da:0,db:0,sa:0,sb:0,trapA:0,trapB:0,winner:null,seenA:Date.now(),seenB:0
+          da:0,db:0,sa:0,sb:0,trapA:0,trapB:0,healA:0,healB:0,winner:null,seenA:Date.now(),seenB:0
         });
         fdb.collection("matchmaking").doc(fbUser.uid).delete().catch(()=>{});
         fdb.collection("matchmaking").doc(other.uid).delete().catch(()=>{});
@@ -3185,10 +3203,11 @@ function enterDuel(mode,key,ref,data){
     fDmgOpp:key==="a"?"db":"da", fSelfOpp:key==="a"?"sb":"sa",
     fSeenMe:key==="a"?"seenA":"seenB", fSeenOpp:key==="a"?"seenB":"seenA",
     fTrapMe:key==="a"?"trapA":"trapB", fTrapOpp:key==="a"?"trapB":"trapA",
+    fHealMe:key==="a"?"healA":"healB", fHealOpp:key==="a"?"healB":"healA",
     me:{handle:meP.handle||"YOU", col:meT.col, tier:meT.name, skin:meP.skin||"operator"},
     opp:{handle:mode==="bot"?"TRAINING DUMMY":"OPPONENT", col:mode==="bot"?"#c2506b":"#6d708f", tier:"\u2014", skin:"operator"},
-    hpMe:_HPMAX, hpOpp:_HPMAX, dealtMe:0, dealtOpp:0, selfMe:0, selfOpp:0,
-    miniKey:null, miniMode:"focus", streak:0, special:false, parry:null, parryRefund:0,
+    hpMe:_HPMAX, hpOpp:_HPMAX, dealtMe:0, dealtOpp:0, selfMe:0, selfOpp:0, heal:0, healOpp:0,
+    miniKey:null, miniMode:"focus", streak:0, special:false, parry:null,
     trapped:false, trapBotLeft:0, trapOppN:0, trapSeen:0, prep:true,
     botNext: performance.now()+5200+Math.random()*6000
   };
@@ -3234,13 +3253,20 @@ function duelClaimWin(iWon, reason){
   }
   duel._claiming = true;
   const ref=duel.ref, want = iWon ? duel.myKey : duel.oppKey;
-  fdb.runTransaction(async tx=>{
+  const commit = fdb.runTransaction(async tx=>{
     const s=await tx.get(ref);
     const d=s.exists ? s.data() : {};
     if(!d.winner) tx.update(ref,{winner:want, status:"done", winBy:reason||"ko"});
-  }).catch(()=>{ ref.update({winner:want, status:"done", winBy:reason||"ko"}).catch(()=>{}); });
-  // fallback if snapshots stall \u2014 finish with what we claimed
-  setTimeout(()=>{ if(duel && !duel.over) duelFinish(iWon, true, reason==="dc"?"Opponent disconnected.":undefined); }, 2600);
+    return d.winner || want;                 // whoever ended up as the winner
+  }).catch(()=>{ ref.update({winner:want, status:"done", winBy:reason||"ko"}).catch(()=>{}); return want; });
+  // finish from the transaction's verdict (NOT the local guess) \u2014 the onSnapshot
+  // path also fires; whichever lands first sets duel.over and the other no-ops.
+  commit.then(w=>{ if(duel && !duel.over) duelFinish(w===duel.myKey, true, reason==="dc"&&w===duel.myKey?"Opponent disconnected.":undefined); });
+  setTimeout(async ()=>{
+    if(!duel || duel.over) return;
+    let w=want; try{ const g=await ref.get(); w=(g.data()||{}).winner || want; }catch(e){}
+    duelFinish(w===duel.myKey, true, reason==="dc"&&w===duel.myKey?"Opponent disconnected.":undefined);
+  }, 3500);
 }
 function duelFinish(iWon,fromLive,msg){
   if(!duel||duel.over) return;
@@ -3318,7 +3344,7 @@ async function sendChallengeTo(oppId, oppH, oppR){
       status:"pending", createdMs:Date.now(),
       a:{uid:fbUser.uid,handle:me.handle,tier:meT.name,col:meT.col,skin:me.skin||"operator"},
       b:{uid:oppId,handle:oppH,tier:oT.name,col:oT.col,skin:"operator"},
-      da:0,db:0,sa:0,sb:0,trapA:0,trapB:0,winner:null,seenA:Date.now(),seenB:0
+      da:0,db:0,sa:0,sb:0,trapA:0,trapB:0,healA:0,healB:0,winner:null,seenA:Date.now(),seenB:0
     });
   }catch(e){ toast("Could not send challenge: "+(e.code||e.message)); return; }
   closePeek();
