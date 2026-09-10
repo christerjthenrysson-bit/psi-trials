@@ -614,7 +614,8 @@
   }
   .crate:active:not([disabled]){transform:translate(3px,3px);box-shadow:none}
   .crate[disabled]{opacity:.5;cursor:default}
-  .crate-box{font-size:38px;line-height:1;filter:drop-shadow(0 0 8px var(--rc))}
+  .crate-box{width:46px;height:46px;line-height:0;filter:drop-shadow(0 0 8px var(--rc))}
+  .crate-box svg{display:block;width:100%;height:100%}
   .crate-name{font-family:"Silkscreen",monospace;font-weight:700;font-size:12px;text-transform:uppercase}
   .crate-rar{font-family:"Press Start 2P",monospace;font-size:7px;letter-spacing:.5px;color:var(--rc)}
   .crate-cost{
@@ -1052,6 +1053,12 @@
     #peek{padding:14px 8px}
     .peekwrap{padding:12px 12px 20px}
     .peekhead{margin-right:44px}
+    /* the header handle menu: on phones the chip often wraps to the left edge, so
+       an absolute `right:0` menu ran off-screen. Pin it to the viewport instead. */
+    .menu{
+      position:fixed;top:56px;left:10px;right:10px;width:auto;
+      max-height:calc(100vh - 72px);overflow-y:auto;
+    }
   }
   @media(min-width:1000px){ .brand .tag{display:block} }
   @media(prefers-reduced-motion:reduce){
@@ -1321,16 +1328,16 @@
   <div id="duel-cards"></div>
   <div id="duelRules" hidden>
     <div class="dr-box">
-      <div class="dr-h">&#9876; DUEL RULES</div>
+      <div class="dr-h">DUEL RULES</div>
       <ul class="dr-list">
-        <li>Drop your opponent to <b>0 HP</b>. First to fall loses.</li>
-        <li>Each round, pick <b>1 of 3 cards</b> &mdash; the colour is its damage: <span class="dr-l">LIGHT</span> / <span class="dr-m">MED</span> / <span class="dr-x">HARD</span>.</li>
-        <li>A <b>wrong answer</b> or <b>SKIP</b> costs <i>you</i> HP.</li>
-        <li>Right answers earn points (LIGHT +1 &middot; MED +2 &middot; HARD +3). At <b>3</b> you get a <b>SPECIAL</b> card &mdash; FOCUS (charge a heavy hit), TRICK (rig their board) or HEAL.</li>
-        <li>When the enemy attacks, a <b>PARRY</b> ring flashes &mdash; tap it in time to block the hit.</li>
-        <li><b>Live matches</b> move your rating &plusmn;60. <b>Practice duels don&rsquo;t affect anything.</b></li>
+        <li>Each round, pick <b>1 of 3 cards</b>. The colour is the damage a correct answer deals: <span class="dr-l">LIGHT</span> / <span class="dr-m">MED</span> / <span class="dr-x">HARD</span>. A <b>wrong answer</b> or <b>SKIP</b> costs <i>you</i> HP instead.</li>
+        <li>Right answers build points (LIGHT +1 &middot; MED +2 &middot; HARD +3); a wrong one resets you to 0. Reach <b>3</b> and you earn a <b>SPECIAL</b> card. Play it in place of a question:</li>
+        <li><b class="dr-x">FOCUS</b>: every step you nail charges the strike. Finish it and you land one heavy hit, instant, no question.</li>
+        <li><b class="dr-m">TRICK</b>: rig the opponent's <i>next</i> question so the real answer isn't even on the board. Whatever they pick is wrong; their only escape is to realize it and hit <b>SKIP</b>.</li>
+        <li><b class="dr-l">HEAL</b>: instant. Restores a quarter of your HP.</li>
+        <li><b>PARRY</b>: when a hit is coming at you, a ring flashes on screen for a split second. Tap it in time and the hit is blocked cold; miss and it lands full. The timer freezes while the ring is up, and TRICKs can't be parried.</li>
       </ul>
-      <button class="btn primary" id="drGo">ENTER</button>
+      <button class="btn primary" id="drGo">I UNDERSTAND</button>
     </div>
   </div>
 </div>
@@ -1421,7 +1428,7 @@ const SPR_ENTITY_B = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAQA
 const SKINS = {
   operator:{ name:"Operator", front:SPR_ENEMY,    back:SPR_PLAYER,   rarity:null },      /* default, always owned */
   sleepy:  { name:"Sleepy",   front:SPR_SLEEPY_F, back:SPR_SLEEPY_B, rarity:"common" },
-  devil:   { name:"Devil",    front:SPR_DEVIL_F,  back:SPR_DEVIL_B,  rarity:"rare" },
+  devil:   { name:"Devil",    front:SPR_DEVIL_F,  back:SPR_DEVIL_B,  rarity:"rare", secret:true },  /* exclusive to the "christer" handle - not in crates or the shop grid */
   entity:  { name:"Entity",   front:SPR_ENTITY_F, back:SPR_ENTITY_B, rarity:"exotic" },
   quag:    { name:"Quag",     front:SPR_QUAG_F,   back:SPR_QUAG_B,   rarity:"ultra", secret:true }  /* easter egg \u2014 one account only */
 };
@@ -1436,11 +1443,11 @@ const RARITY = {
    sleepy (common) is the baseline; better crates lean toward the rares. */
 const LOOTBOXES = {
   common:{ name:"Common Crate", price:25,  rarity:"common",
-           drops:[["sleepy",90],["devil",9],["entity",1]] },
+           drops:[["sleepy",97],["entity",3]] },
   rare:  { name:"Rare Crate",   price:50,  rarity:"rare",
-           drops:[["sleepy",50],["devil",40],["entity",10]] },
+           drops:[["sleepy",70],["entity",30]] },
   exotic:{ name:"Exotic Crate", price:100, rarity:"exotic",
-           drops:[["sleepy",20],["devil",50],["entity",30]] }
+           drops:[["sleepy",40],["entity",60]] }
 };
 const _DUPE_REFUND = { common:8, rare:16, exotic:34 };
 function rollCrate(key){
@@ -1516,6 +1523,14 @@ function tierBits(name){
 function badgeSVG(name,col){
   const b=tierBits(name); let r="";
   for(let y=0;y<7;y++)for(let x=0;x<7;x++) if(b[y][x]==="1") r+='<rect x="'+x+'" y="'+y+'" width="1" height="1"/>';
+  return '<svg viewBox="0 0 7 7" shape-rendering="crispEdges" fill="'+col+'" width="100%" height="100%">'+r+'</svg>';
+}
+/* loot-crate glyph, drawn in the same 7x7 pixel style as the tier badges:
+   a braced wooden crate (border + X). */
+const CRATE_BITS = ["1111111","1100011","1010101","1001001","1010101","1100011","1111111"];
+function crateSVG(col){
+  let r="";
+  for(let y=0;y<7;y++)for(let x=0;x<7;x++) if(CRATE_BITS[y][x]==="1") r+='<rect x="'+x+'" y="'+y+'" width="1" height="1"/>';
   return '<svg viewBox="0 0 7 7" shape-rendering="crispEdges" fill="'+col+'" width="100%" height="100%">'+r+'</svg>';
 }
 function pretty(t){ return t.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase()); }
@@ -1789,6 +1804,9 @@ function sanitizeProfile(p){
   // one-time coin grants for the maker's test account
   if((p.handle||"").toLowerCase()==="christer" && !p._grant100){ p.coins+=100; p._grant100=1; }
   if((p.handle||"").toLowerCase()==="christer" && !p._grant2){ p.coins+=300; p._grant2=1; }
+  if((p.handle||"").toLowerCase()==="christer" && !p._grant3){ p.coins+=100; p._grant3=1; }
+  // "Devil" skin is exclusive to the "christer" handle (not sold or dropped)
+  if((p.handle||"").toLowerCase()==="christer" && p.owned.indexOf("devil")<0) p.owned.push("devil");
   // easter egg: one account is permanently bound to the secret skin
   if(eggLocked(p)){ if(p.owned.indexOf(_EGG_SKIN)<0) p.owned.push(_EGG_SKIN); p.skin=_EGG_SKIN; }
   return p;
@@ -2262,7 +2280,7 @@ const MINI_RUN={
     miniCleanup=()=>clearTimeout(to);
   },
   chimp_test(host,done,onStep){
-    const size=5, total=size*size, N=7+(Math.random()*3|0);   // 7-9 numbers
+    const size=5, total=size*size, N=6+(Math.random()*2|0);   // 6-7 numbers
     const spots=sample([...Array(total).keys()],N);
     miniSay(host,"Click the tiles 1 \u2192 "+N+" in order");
     const grid=el("div","mini-grid"); grid.style.setProperty("--n",size);
@@ -2445,20 +2463,21 @@ function renderShop(){
     $("crateRow").innerHTML = Object.keys(LOOTBOXES).map(k=>{
       const b=LOOTBOXES[k], r=RARITY[b.rarity], afford=(p.coins||0)>=b.price;
       return '<button class="crate '+(_crateSpinning?'off':'')+'" data-crate="'+k+'" '+((afford&&!_crateSpinning)?'':'disabled')+' style="--rc:'+r.col+'">'+
-        '<div class="crate-box"><span>&#127873;</span></div>'+
+        '<div class="crate-box">'+crateSVG(r.col)+'</div>'+
         '<div class="crate-name">'+escapeHtml(b.name)+'</div>'+
         '<div class="crate-rar">'+r.name+'</div>'+
-        '<div class="crate-cost">'+(afford?'OPEN &#9679; '+b.price:'&#128274; '+b.price)+'</div></button>';
+        '<div class="crate-cost">'+(afford?'OPEN &#9679; '+b.price:'LOCKED &#9679; '+b.price)+'</div></button>';
     }).join("");
     $("crateRow").querySelectorAll("[data-crate]").forEach(b=>b.addEventListener("click",()=>openCrate(b.dataset.crate)));
   }
 
   // --- owned skins / equip ---
-  const keys = egg ? [_EGG_SKIN] : SKIN_KEYS.filter(k=>p.owned.indexOf(k)>=0);
+  // every skin the player owns, in definition order (includes an exclusive skin like Devil if granted)
+  const keys = egg ? [_EGG_SKIN] : Object.keys(SKINS).filter(k=>p.owned.indexOf(k)>=0);
   $("shopGrid").innerHTML = keys.map(k=>{
     const s=SKINS[k], equipped=(p.skin||"operator")===k, rc=s.rarity?RARITY[s.rarity].col:"var(--ink-2)";
     let btn;
-    if(egg) btn='<button class="sk-btn" disabled>&#11088; BOUND</button>';
+    if(egg) btn='<button class="sk-btn" disabled>BOUND</button>';
     else if(equipped) btn='<button class="sk-btn" disabled>EQUIPPED</button>';
     else btn='<button class="sk-btn eq" data-eq="'+k+'">EQUIP</button>';
     return '<div class="sk-card'+(equipped?' on':'')+'" style="--rc:'+rc+'">'+
@@ -2705,39 +2724,111 @@ function genMathQ(forceTier){
     q:"What is "+expr+" ?", o:opts, a:LETTERS[opts.indexOf(String(ans))], at:String(ans),
     ex:expr+" = "+ans, t, id:"GM"+(Math.random()*1e9|0) };
 }
-/* rigged question: every option is wrong, and looks ordinary */
+/* rigged ("cursed") question: every option is wrong and it reads like an ordinary
+   question. mixes math, word and logic archetypes so a cursed board never stands
+   out as "oh, it's the medium-math one again". */
+const _TRAP_SYN = [
+  {w:"ARID",      bad:["humid","lush","fertile","verdant"],        real:"dry"},
+  {w:"CANDID",    bad:["evasive","guarded","secretive","cunning"], real:"frank"},
+  {w:"LETHARGIC", bad:["frantic","spry","brisk","restless"],       real:"sluggish"},
+  {w:"OPAQUE",    bad:["clear","glassy","sheer","transparent"],    real:"cloudy"},
+  {w:"ABUNDANT",  bad:["scarce","meager","sparse","paltry"],       real:"plentiful"},
+  {w:"TRANQUIL",  bad:["hectic","turbulent","frenzied","chaotic"], real:"calm"},
+  {w:"BRITTLE",   bad:["pliable","supple","elastic","springy"],    real:"fragile"},
+  {w:"NOVICE",    bad:["expert","veteran","master","virtuoso"],    real:"beginner"}
+];
+const _TRAP_ODD = [
+  {cat:"songbirds",            items:["robin","sparrow","finch","wren"]},
+  {cat:"shades of red",        items:["scarlet","crimson","vermilion","ruby"]},
+  {cat:"big cats",             items:["leopard","jaguar","panther","cougar"]},
+  {cat:"spans of time",        items:["fortnight","decade","century","millennium"]},
+  {cat:"stringed instruments", items:["viola","cello","mandolin","harp"]},
+  {cat:"prime numbers",        items:["13","17","29","41"]},
+  {cat:"noble gases",          items:["neon","argon","krypton","xenon"]},
+  {cat:"planets",              items:["Mars","Venus","Neptune","Mercury"]}
+];
+const _TRAP_ANALOG = [
+  {a:"LIBRARY",     b:"BOOKS",       c:"ARMORY",   bad:["soldiers","maps","rations","banners"],  real:"weapons"},
+  {a:"CONDUCTOR",   b:"ORCHESTRA",   c:"CAPTAIN",  bad:["passenger","cargo","harbor","compass"], real:"crew"},
+  {a:"PAINTER",     b:"BRUSH",       c:"SCULPTOR", bad:["canvas","easel","palette","frame"],     real:"chisel"},
+  {a:"THERMOMETER", b:"TEMPERATURE", c:"ODOMETER", bad:["weight","volume","pressure","time"],    real:"distance"},
+  {a:"DROUGHT",     b:"RAIN",        c:"FAMINE",   bad:["war","plague","winter","locusts"],      real:"food"}
+];
+const _TRAP_SYLLO = [
+  {p:"All Zerin are Motto. Some Motto are Karn.",
+   bad:["All Zerin are Karn.","Some Zerin are Karn.","No Zerin are Karn.","Some Karn are Zerin."]},
+  {p:"Some artists are dreamers. All dreamers are night owls.",
+   bad:["All artists are night owls.","No artists are night owls.","All night owls are artists.","Some night owls are not dreamers."]},
+  {p:"No reptiles are mammals. Some pets are reptiles.",
+   bad:["No pets are mammals.","All pets are reptiles.","Some pets are mammals.","All mammals are pets."]},
+  {p:"All widgets are gadgets. No gadgets are gizmos.",
+   bad:["Some widgets are gizmos.","All gizmos are widgets.","Some gadgets are gizmos.","No widgets are gadgets."]}
+];
 function genTrapQ(){
-  if(Math.random()<0.55){
+  const roll=Math.random();
+  const id="GT"+(Math.random()*1e9|0);
+  const dmix=["E","E","M","M","H"][Math.random()*5|0];
+  if(roll<0.22){                              // rigged multiplication
     const a=drand(13,39),b=drand(13,39), truth=a*b;
-    const used=new Set([truth]), opts=[];
-    let g=0;
+    const used=new Set([truth]), opts=[]; let g=0;
     while(opts.length<4 && g++<80){
       const off=[7,-7,9,-9,11,-11,13,-13,17,-17,20,-20][Math.random()*12|0];
       const v=truth+off; if(v>0 && !used.has(v)){ used.add(v); opts.push(v); }
     }
     while(opts.length<4){ const v=truth+drand(5,29); if(!used.has(v)){ used.add(v); opts.push(v); } }
     dshuf(opts);
-    return { cat:"LR", type:"trap", kind:"trap", name:"Mental Math", d:["E","M","M","H"][Math.random()*4|0],
+    return { cat:"LR", type:"trap", kind:"trap", name:"Mental Math", d:dmix,
       q:"What is "+a+" \u00d7 "+b+" ?", o:opts.map(String), a:"?",
-      at:"None of these \u2014 the real answer ("+truth+") wasn't offered.",
+      at:"None of these. The real answer ("+truth+") wasn't offered.",
       ex:"Rigged. "+a+" \u00d7 "+b+" = "+truth+", which was not one of the choices.",
-      t:16000, id:"GT"+(Math.random()*1e9|0) };
+      t:16000, id };
   }
-  const start=drand(2,9), step=drand(2,7);
-  const seq=[start,start+step,start+2*step,start+3*step], truth=start+4*step;
-  const used=new Set([truth]), opts=[];
-  let g=0;
-  while(opts.length<4 && g++<80){
-    const off=[step-1,step+1,-step,step*2,1,-1,2,-2,3][Math.random()*9|0];
-    const v=truth+off; if(!used.has(v)){ used.add(v); opts.push(v); }
+  if(roll<0.40){                              // rigged "what comes next"
+    const start=drand(2,9), step=drand(2,7);
+    const seq=[start,start+step,start+2*step,start+3*step], truth=start+4*step;
+    const used=new Set([truth]), opts=[]; let g=0;
+    while(opts.length<4 && g++<80){
+      const off=[step-1,step+1,-step,step*2,1,-1,2,-2,3][Math.random()*9|0];
+      const v=truth+off; if(!used.has(v)){ used.add(v); opts.push(v); }
+    }
+    while(opts.length<4){ const v=truth+drand(1,9); if(!used.has(v)){ used.add(v); opts.push(v); } }
+    dshuf(opts);
+    return { cat:"LR", type:"trap", kind:"trap", name:"Pattern Logic", d:dmix,
+      q:"What comes next?   "+seq.join(", ")+", ?", o:opts.map(String), a:"?",
+      at:"None of these. The sequence continues "+truth+".",
+      ex:"Rigged. The run adds "+step+" each step, so the next term is "+truth+" (not listed).",
+      t:16000, id };
   }
-  while(opts.length<4){ const v=truth+drand(1,9); if(!used.has(v)){ used.add(v); opts.push(v); } }
-  dshuf(opts);
-  return { cat:"LR", type:"trap", kind:"trap", name:"Pattern Logic", d:["E","M","M","H"][Math.random()*4|0],
-    q:"What comes next?   "+seq.join(", ")+", ?", o:opts.map(String), a:"?",
-    at:"None of these \u2014 the sequence continues "+truth+".",
-    ex:"Rigged. The run adds "+step+" each step, so the next term is "+truth+" (not listed).",
-    t:16000, id:"GT"+(Math.random()*1e9|0) };
+  if(roll<0.58){                              // rigged synonym (word)
+    const s=_TRAP_SYN[Math.random()*_TRAP_SYN.length|0];
+    return { cat:"LR", type:"trap", kind:"trap", name:"Concepts & Meaning", d:dmix,
+      q:"Which word most nearly means \u201c"+s.w+"\u201d?", o:dshuf(s.bad.slice()), a:"?",
+      at:"None of these. "+s.w+" means \u201c"+s.real+"\u201d; every choice is an opposite or unrelated.",
+      ex:"Rigged. "+s.w+" means \u201c"+s.real+"\u201d, which was never an option.",
+      t:18000, id };
+  }
+  if(roll<0.76){                              // rigged odd-one-out (they all belong)
+    const o=_TRAP_ODD[Math.random()*_TRAP_ODD.length|0];
+    return { cat:"LR", type:"trap", kind:"trap", name:"Concepts & Meaning", d:dmix,
+      q:"Which one does NOT belong with the others?", o:dshuf(o.items.slice()), a:"?",
+      at:"None of these. All four are "+o.cat+", so there is no odd one out.",
+      ex:"Rigged. Every option is one of the "+o.cat+"; nothing is the odd one out.",
+      t:18000, id };
+  }
+  if(roll<0.92){                              // rigged syllogism (logic)
+    const g=_TRAP_SYLLO[Math.random()*_TRAP_SYLLO.length|0];
+    return { cat:"LR", type:"trap", kind:"trap", name:"Inference", d:dmix,
+      q:g.p+"   Which conclusion follows?", o:dshuf(g.bad.slice()), a:"?",
+      at:"None of these. No valid conclusion follows from those premises.",
+      ex:"Rigged. Not one of the listed conclusions is valid from the premises given.",
+      t:18000, id };
+  }
+  const an=_TRAP_ANALOG[Math.random()*_TRAP_ANALOG.length|0];   // rigged analogy (word)
+  return { cat:"LR", type:"trap", kind:"trap", name:"Concepts & Meaning", d:dmix,
+    q:an.a+" is to "+an.b+" as "+an.c+" is to ___?", o:dshuf(an.bad.slice()), a:"?",
+    at:"None of these. "+an.c+" is to \u201c"+an.real+"\u201d, which isn't listed.",
+    ex:"Rigged. "+an.a+":"+an.b+" :: "+an.c+":"+an.real+", and "+an.real+" wasn't an option.",
+    t:18000, id };
 }
 /* real "what comes next" \u2014 a LIGHT question, only 3 options so it never scrolls */
 function genSeqQ(){
@@ -2927,7 +3018,7 @@ function duelSpecialOffer(){
   const host=$("duel-cards"); host.innerHTML="";
   const mkey=_DUEL_MINIS[Math.random()*_DUEL_MINIS.length|0];
   const panel=document.createElement("div"); panel.className="dc-mini dc-offer";
-  panel.innerHTML='<div class="dcm-tag">&#9889; '+escapeHtml(MINI_NAME[mkey]||mkey)+' &mdash; special</div>'+
+  panel.innerHTML='<div class="dcm-tag">'+escapeHtml(MINI_NAME[mkey]||mkey)+' &mdash; special</div>'+
     '<div class="dcm-body dco-body">'+
       '<p class="dco-lead">FOCUS &amp; TRICK need the benchmark. HEAL is instant.</p>'+
       '<div class="dco-opts">'+
@@ -2962,10 +3053,12 @@ function duelNext(){
   duelChoose();
 }
 /* damage per charge + completion bonus, scaled by difficulty:
-   number_memory (recall the boxes) is the heaviest FOCUS, then sequence > chimp > visual > verbal.
+   number_memory (recall the boxes) is the heaviest FOCUS, then sequence_memory.
+   chimp_test (the number-square game) is a short one, so it just lands a normal FOCUS,
+   in line with visual_memory / verbal_memory.
    a completed FOCUS always clearly beats a HARD hit (38); a well-charged one nears 2x it. */
-const _CHG_PER={number_memory:6.0,verbal_memory:3.2,visual_memory:4.2,chimp_test:5.0,sequence_memory:5.4};
-const _MINI_TIER={visual_memory:2,number_memory:4,verbal_memory:2,chimp_test:3,sequence_memory:3};
+const _CHG_PER={number_memory:6.0,verbal_memory:3.2,visual_memory:4.2,chimp_test:4.5,sequence_memory:5.4};
+const _MINI_TIER={visual_memory:2,number_memory:4,verbal_memory:2,chimp_test:2,sequence_memory:3};
 /* PARRY: any incoming enemy attack (not a trick) pops a 450ms window over the
    current screen. tap in time -> the attack is stopped (no damage). miss -> it lands.
    Afterward the question timer stays frozen and the screen stays un-clickable for
@@ -3045,7 +3138,7 @@ function duelStartMini(key,mode){
   const host=$("duel-cards"); host.innerHTML="";
   const panel=document.createElement("div"); panel.className="dc-mini";
   const verb = mode==="trick" ? "rig their board" : "charge your strike";
-  panel.innerHTML='<div class="dcm-tag">&#9889; '+escapeHtml(MINI_NAME[key]||key)+' &mdash; '+verb+
+  panel.innerHTML='<div class="dcm-tag">'+escapeHtml(MINI_NAME[key]||key)+' &mdash; '+verb+
     '<button class="dcm-skip" type="button">SKIP &minus;'+_DUEL_SKIP_DMG+'</button>'+
     '<span class="dcm-pips" id="dcmPips"></span><span class="dcm-hits" id="dcmHits"></span></div>';
   const body=document.createElement("div"); body.className="dcm-body";
@@ -3103,7 +3196,7 @@ function duelActivateTrick(){
   if(!duel) return;
   if(duel.mode==="bot"){
     duel.trapBotLeft = drand(2,4);
-    duel.botNext = performance.now()+1400;
+    duel.botNext = performance.now()+1900;
     duelSetOppTricked(true);
     toastArena("OPPONENT RATTLED");
     sfx("perfect");
@@ -3194,6 +3287,7 @@ function duelSpUpdate(){
   else { el.textContent="SP "+(duel.streak||0)+"/"+_STREAK_SPECIAL; el.classList.remove("ready"); }
 }
 const _DUEL_WIN_RATING = 60;     // live-PvP result is worth \u00b160 rating; questions in a duel don't move it
+const _PRACTICE_WIN_RATING = 30; // a practice duel vs the dummy moves rating at half the live stakes
 function duelRate(delta){
   const p=P(); if(!p) return;
   p.rating=Math.max(0,Math.round((p.rating||400)+delta));
@@ -3262,15 +3356,15 @@ function duelTick(){
       toastArena(duel.trapBotLeft>0 ? "OPPONENT: wrong again\u2026" : "OPPONENT WISES UP");
       sfx("miss");
       if(duel.trapBotLeft<=0) duelSetOppTricked(false);
-      duel.botNext=now+2400+Math.random()*2600;
+      duel.botNext=now+3200+Math.random()*3000;
       if(duel.hpOpp<=0){ duelClaimWin(true); return; }
     } else if(!duel.trapped && !duel.miniKey && Math.random()<0.16){
       // bot quietly rigs your board \u2014 takes effect only on your NEXT problem, no jarring swap
       duel.trapped=true;
-      duel.botNext=now+5200+Math.random()*5000;
+      duel.botNext=now+6800+Math.random()*5500;
     } else {
       const dmg=[14,14,18,18,24][Math.random()*5|0];
-      duel.botNext=now+5200+Math.random()*7000;
+      duel.botNext=now+6800+Math.random()*7500;
       duelTakeHit(dmg, false);          // -> parry window; applies on miss
     }
   }
@@ -3394,7 +3488,7 @@ function enterDuel(mode,key,ref,data){
     hpMe:_HPMAX, hpOpp:_HPMAX, dealtMe:0, dealtOpp:0, selfMe:0, selfOpp:0, heal:0, healOpp:0,
     miniKey:null, miniMode:"focus", streak:0, special:false, parry:null,
     trapped:false, trapBotLeft:0, trapOppN:0, trapSeen:0, prep:true,
-    botNext: performance.now()+5200+Math.random()*6000
+    botNext: performance.now()+6800+Math.random()*6500
   };
   if(mode==="live" && data){ const o = key==="a"?data.b:data.a; duel.opp={handle:o.handle,col:o.col||"#6d708f",tier:o.tier||"\u2014",skin:o.skin||"operator"}; }
   $("dtTitle").textContent = mode==="bot" ? "PRACTICE DUEL" : "DUEL \u2014 "+duel.opp.handle;
@@ -3414,9 +3508,11 @@ function enterDuel(mode,key,ref,data){
 function duelShowRules(mode){
   const r=$("duelRules"); if(!r){ if(duel&&duel.prep){ duel.prep=false; duelChoose(); } return; }
   r.classList.add("show"); r.hidden=false;
-  let secs = mode==="bot" ? 0 : 12;      // live: auto-enter so a slow reader can't stall the match
+  // practice: an explicit "I understand" click is the only way in, no timer.
+  // live: still auto-enter after a bit so a slow reader can't stall a real opponent.
+  let secs = mode==="bot" ? 0 : 12;
   const btn=$("drGo"); let done=false, ivc=null;
-  const label=()=>{ btn.textContent = secs>0 ? "ENTER ("+secs+")" : "ENTER"; };
+  const label=()=>{ btn.textContent = secs>0 ? "I UNDERSTAND ("+secs+")" : "I UNDERSTAND"; };
   label();
   const go=()=>{
     if(done) return; done=true;
@@ -3462,13 +3558,15 @@ function duelFinish(iWon,fromLive,msg){
   if(duelUnsub){ duelUnsub(); duelUnsub=null; }
   const p=P();
   const rated = duel.mode==="live";
+  // rating moves on live matches (±60) and on practice duels vs the dummy (±30); 0 for anything else
+  const ratePts = duel.mode==="live" ? _DUEL_WIN_RATING : duel.mode==="bot" ? _PRACTICE_WIN_RATING : 0;
   let gotCoin=false;
   if(p && rated){
     if(iWon) p.wins=(p.wins||0)+1; else p.losses=(p.losses||0)+1;
     if(Math.random()<1/3){ p.coins=(p.coins||0)+1; gotCoin=true; }   // 1-in-3 per real PvP match
     save(); flushCloud();
   }
-  if(rated) duelRate(iWon ? _DUEL_WIN_RATING : -_DUEL_WIN_RATING);
+  if(ratePts) duelRate(iWon ? ratePts : -ratePts);
   if(duel.ref) duel.ref.update({status:"done"}).catch(()=>{});
   if(iWon){
     flash(); sfx("perfect"); burst(200);
@@ -3495,11 +3593,13 @@ function duelFinish(iWon,fromLive,msg){
     '<div style="margin:auto;text-align:center;padding:34px 14px">'+
     '<div style="font-family:\'Press Start 2P\',monospace;font-size:20px;color:'+(iWon?"var(--win)":"var(--miss)")+'">'+(iWon?"VICTORY":"DEFEAT")+'</div>'+
     (msg?'<div style="margin-top:10px;color:var(--ink-2);font-size:13px">'+escapeHtml(msg)+'</div>':'')+
+    (ratePts
+      ? '<div style="margin-top:8px;font-family:\'Press Start 2P\',monospace;font-size:12px;color:'+(iWon?"var(--win)":"var(--miss)")+'">'+(iWon?"+":"\u2212")+ratePts+' RATING</div>'
+      : '')+
     (rated
-      ? '<div style="margin-top:8px;font-family:\'Press Start 2P\',monospace;font-size:12px;color:'+(iWon?"var(--win)":"var(--miss)")+'">'+(iWon?"+":"\u2212")+_DUEL_WIN_RATING+' RATING</div>'+
-        (gotCoin?'<div style="margin-top:8px;font-family:\'Press Start 2P\',monospace;font-size:12px;color:var(--gold)">&#9679; +1 COIN</div>':'')+
+      ? (gotCoin?'<div style="margin-top:8px;font-family:\'Press Start 2P\',monospace;font-size:12px;color:var(--gold)">&#9679; +1 COIN</div>':'')+
         '<div style="margin-top:10px;font-family:Silkscreen,monospace;font-weight:700;color:var(--ink-2)">'+((p&&p.wins)||0)+' W \u00b7 '+((p&&p.losses)||0)+' L &nbsp;\u00b7&nbsp; &#9679; '+((p&&p.coins)||0)+'</div>'
-      : '<div style="margin-top:10px;font-family:Silkscreen,monospace;font-weight:700;color:var(--ink-2)">PRACTICE \u00b7 nothing scored</div>')+
+      : '<div style="margin-top:10px;font-family:Silkscreen,monospace;font-weight:700;color:var(--ink-2)">PRACTICE \u00b7 rating only</div>')+
     '<button class="btn primary" id="duelDone" style="margin-top:20px">BACK</button></div>';
   $("duelDone").addEventListener("click",exitDuel);
 }
