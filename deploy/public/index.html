@@ -692,7 +692,7 @@
   .dch-lead{margin:0;text-align:center;font-size:12px;color:var(--ink-2)}
   .dch-row{display:flex;gap:8px;width:100%}
   .dch-card{
-    flex:1 1 0;min-width:0;aspect-ratio:5/7;min-height:230px;
+    flex:1 1 0;min-width:0;aspect-ratio:5/7;min-height:230px;overflow:hidden;
     display:flex;flex-direction:column;align-items:stretch;gap:9px;
     padding:14px 12px;background:var(--case-2);border:3px solid var(--ink);border-radius:7px;
     box-shadow:4px 4px 0 var(--ink);border-left:11px solid var(--cc,var(--pur-ink));text-align:left;
@@ -701,8 +701,12 @@
   .dch-head{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:12px}
   .dch-tag{font-family:"Press Start 2P",monospace;font-size:9px;letter-spacing:.5px;color:var(--cc,var(--pur-ink))}
   .dch-genre{
-    flex:1 1 auto;display:flex;align-items:center;
-    font-family:"Silkscreen",monospace;font-weight:700;font-size:21px;line-height:1.35;text-transform:uppercase;
+    flex:1 1 auto;min-width:0;display:flex;align-items:center;overflow:hidden;
+  }
+  .dch-genre .dg-t{
+    display:block;max-width:100%;
+    font-family:"Silkscreen",monospace;font-weight:700;font-size:21px;line-height:1.3;text-transform:uppercase;
+    overflow-wrap:break-word;word-break:break-word;
   }
   .dch-meter{
     flex:0 0 auto;align-self:flex-start;font-family:"Silkscreen",monospace;font-weight:700;font-size:11px;letter-spacing:.5px;
@@ -724,7 +728,8 @@
   }
   .dch-special::after{display:none}
   .dch-special .dch-head{flex:0 0 auto;flex-direction:column;align-items:flex-start;gap:3px;min-height:0}
-  .dch-special .dch-genre{flex:1 1 auto;font-size:16px}
+  .dch-special .dch-genre{flex:1 1 auto}
+  .dch-special .dch-genre .dg-t{font-size:16px}
   @media(max-width:560px){
     /* phones: three short full-width rows — every genre fully visible, no scroll */
     .dch-row{flex-direction:column;gap:9px}
@@ -733,7 +738,8 @@
       padding:12px 14px;border-left:11px solid var(--cc,var(--pur-ink));
     }
     .dch-row .dch-card .dch-head{flex:0 0 auto;flex-direction:column;align-items:flex-end;gap:4px;min-height:0}
-    .dch-row .dch-card .dch-genre{order:-1;flex:1 1 auto;font-size:16px;line-height:1.2}
+    .dch-row .dch-card .dch-genre{order:-1;flex:1 1 auto}
+    .dch-row .dch-card .dch-genre .dg-t{font-size:16px;line-height:1.2}
     .dch-row .dch-card::after{display:none}
   }
   .arena-toast{
@@ -2567,12 +2573,22 @@ function _choiceCard(ch){
   }
   el.innerHTML='<span class="dch-head"><span class="dch-tag">'+(tag||"")+'</span>'+
     '<span class="dch-meter">'+meter+'</span></span>'+
-    '<span class="dch-genre">'+escapeHtml(genre)+'</span>';
+    '<span class="dch-genre"><span class="dg-t">'+escapeHtml(genre)+'</span></span>';
   el.addEventListener("click",()=>{
     if(!duel||duel.over||!duel.choosing) return;
     duel.choosing=false; duelPickChoice(ch);
   });
   return el;
+}
+/* shrink a card's genre text until it fits the card \u2014 after wrapping, if a single
+   long word still overruns the border, step the font size down */
+function _fitGenre(box){
+  const t=box.querySelector(".dg-t"); if(!t) return;
+  t.style.fontSize="";
+  let px=parseFloat(getComputedStyle(t).fontSize)||16, g=0;
+  while((t.scrollWidth>box.clientWidth+1 || t.scrollHeight>box.clientHeight+1) && px>9 && g++<40){
+    px-=1; t.style.fontSize=px+"px";
+  }
 }
 function duelChoose(){
   stopMini(); duel.miniKey=null; duel.card=null; duelSpUpdate();
@@ -2592,6 +2608,7 @@ function duelChoose(){
     wrap.appendChild(_choiceCard({kind:"special"}));
   }
   host.appendChild(wrap);
+  requestAnimationFrame(()=>wrap.querySelectorAll(".dch-genre").forEach(_fitGenre));
   duel.choosing=true;
 }
 function duelShowQ(q){
