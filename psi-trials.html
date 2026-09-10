@@ -3228,6 +3228,7 @@ function enterDuel(mode,key,ref,data){
   hideChal(); closePeek(); leaveQueue();
   if(game) abandonGame();
   const meP=P()||blankProfile("YOU"), meT=TIERS[tierIndex(meP.rating||400)];
+  const meSkin = eggLocked(meP) ? _EGG_SKIN : (meP.skin||"operator");
   duel={
     mode, ref:ref||null, over:false, card:null,
     myKey:key, oppKey:key==="a"?"b":"a",
@@ -3236,8 +3237,8 @@ function enterDuel(mode,key,ref,data){
     fSeenMe:key==="a"?"seenA":"seenB", fSeenOpp:key==="a"?"seenB":"seenA",
     fTrapMe:key==="a"?"trapA":"trapB", fTrapOpp:key==="a"?"trapB":"trapA",
     fHealMe:key==="a"?"healA":"healB", fHealOpp:key==="a"?"healB":"healA",
-    me:{handle:meP.handle||"YOU", col:meT.col, tier:meT.name, skin: eggLocked(meP) ? _EGG_SKIN : (meP.skin||"operator")},
-    opp:{handle:mode==="bot"?"TRAINING DUMMY":"OPPONENT", col:mode==="bot"?"#c2506b":"#6d708f", tier:"\u2014", skin:"operator"},
+    me:{handle:meP.handle||"YOU", col:meT.col, tier:meT.name, skin:meSkin},
+    opp:{handle:mode==="bot"?"TRAINING DUMMY":"OPPONENT", col:mode==="bot"?"#c2506b":"#6d708f", tier:"\u2014", skin: mode==="bot"?meSkin:"operator"},
     hpMe:_HPMAX, hpOpp:_HPMAX, dealtMe:0, dealtOpp:0, selfMe:0, selfOpp:0, heal:0, healOpp:0,
     miniKey:null, miniMode:"focus", streak:0, special:false, parry:null,
     trapped:false, trapBotLeft:0, trapOppN:0, trapSeen:0, prep:true,
