@@ -750,6 +750,22 @@
   }
   @keyframes atoast{0%{opacity:0;transform:translate(-50%,-30%)}15%{opacity:1;transform:translate(-50%,-50%)}
     75%{opacity:1}100%{opacity:0;transform:translate(-50%,-70%)}}
+  /* pre-fight rules screen */
+  #duelRules{position:absolute;inset:0;z-index:46;display:none;place-items:center;overflow:auto;
+    background:rgba(27,29,43,.55);padding:16px}
+  #duelRules.show{display:grid}
+  #duelRules .dr-box{
+    width:min(94vw,440px);background:var(--case-2);border:4px solid var(--ink);box-shadow:8px 8px 0 var(--ink);
+    padding:20px 20px 18px;
+  }
+  #duelRules .dr-h{font-family:"Press Start 2P",monospace;font-size:13px;color:var(--pur-ink);text-align:center;margin-bottom:14px}
+  #duelRules .dr-list{margin:0 0 16px;padding-left:18px;display:flex;flex-direction:column;gap:9px}
+  #duelRules .dr-list li{font-size:12.5px;line-height:1.5;color:var(--ink)}
+  #duelRules .dr-list b{color:var(--ink)}
+  #duelRules .dr-l{font-weight:700;color:var(--blu-ink)}
+  #duelRules .dr-m{font-weight:700;color:var(--gold)}
+  #duelRules .dr-x{font-weight:700;color:var(--miss)}
+  #duelRules .btn{width:100%}
   /* parry overlay — covers the whole duel (cards or question) */
   .duel-parry{
     position:absolute;inset:0;z-index:40;display:grid;place-items:center;cursor:pointer;
@@ -1210,6 +1226,20 @@
     </div>
   </div>
   <div id="duel-cards"></div>
+  <div id="duelRules" hidden>
+    <div class="dr-box">
+      <div class="dr-h">&#9876; DUEL RULES</div>
+      <ul class="dr-list">
+        <li>Drop your opponent to <b>0 HP</b>. First to fall loses.</li>
+        <li>Each round, pick <b>1 of 3 cards</b> &mdash; the colour is its damage: <span class="dr-l">LIGHT</span> / <span class="dr-m">MED</span> / <span class="dr-x">HARD</span>.</li>
+        <li>A <b>wrong answer</b> or <b>SKIP</b> costs <i>you</i> HP.</li>
+        <li>Right answers earn points (LIGHT +1 &middot; MED +2 &middot; HARD +3). At <b>3</b> you get a <b>SPECIAL</b> card &mdash; FOCUS (charge a heavy hit), TRICK (rig their board) or HEAL.</li>
+        <li>When the enemy attacks, a <b>PARRY</b> ring flashes &mdash; tap it in time to block the hit.</li>
+        <li><b>Live matches</b> move your rating &plusmn;60. <b>Practice duels don&rsquo;t affect anything.</b></li>
+      </ul>
+      <button class="btn primary" id="drGo">ENTER</button>
+    </div>
+  </div>
 </div>
 
 <div id="chal" hidden>
@@ -2950,7 +2980,7 @@ function duelTick(){
     }
     if(rem<=0){ c.spent=true; duelSkip(); return; }
   }
-  if(duel.mode==="bot" && now>=duel.botNext){
+  if(duel.mode==="bot" && !duel.prep && now>=duel.botNext){
     if(duel.trapBotLeft>0){
       duel.trapBotLeft--;
       duel.selfOpp += drand(5,9);
@@ -2981,6 +3011,11 @@ function duelTick(){
 function duelSyncLive(d){
   if(!duel||duel.mode!=="live"||duel.over) return;
   const nd=d[duel.fDmgOpp]||0;
+  if(duel.prep){                       // still on the rules screen \u2014 track state, no parry, no KO, no disconnect
+    duel.dealtOpp=nd; duel.selfOpp=d[duel.fSelfOpp]||0; duelHP();
+    if(d.winner) duelFinish(d.winner===duel.myKey,true);
+    return;
+  }
   if(nd>duel.dealtOpp){ duelTakeHit(nd-duel.dealtOpp, true, nd); }   // parry window; commits target on miss
   else duel.dealtOpp=nd;
   duel.selfOpp=d[duel.fSelfOpp]||0;
@@ -3059,7 +3094,7 @@ function enterDuel(mode,key,ref,data){
     opp:{handle:mode==="bot"?"TRAINING DUMMY":"OPPONENT", col:mode==="bot"?"#c2506b":"#6d708f", tier:"\u2014"},
     hpMe:_HPMAX, hpOpp:_HPMAX, dealtMe:0, dealtOpp:0, selfMe:0, selfOpp:0,
     miniKey:null, miniMode:"focus", streak:0, special:false, parry:null, parryRefund:0,
-    trapped:false, trapBotLeft:0, trapOppN:0, trapSeen:0,
+    trapped:false, trapBotLeft:0, trapOppN:0, trapSeen:0, prep:true,
     botNext: performance.now()+5200+Math.random()*6000
   };
   if(mode==="live" && data){ const o = key==="a"?data.b:data.a; duel.opp={handle:o.handle,col:o.col||"#6d708f",tier:o.tier||"\u2014"}; }
@@ -3068,13 +3103,30 @@ function enterDuel(mode,key,ref,data){
   $("duel-rotate").style.display="";
   document.body.classList.add("playing");
   $("duel").hidden=false; $("duel").classList.add("show");
-  duelDraw(); duelChoose();
+  duelDraw();
   duel.iv=setInterval(duelTick,250);
+  duelShowRules(mode);          // rules screen before the fight; frees up -> duelChoose()
   if(mode==="live" && ref){
     if(duelUnsub) duelUnsub();
     duelUnsub=ref.onSnapshot(s=>{ if(s.exists) duelSyncLive(s.data()); }, ()=>{});
     const f={}; f[duel.fSeenMe]=Date.now(); ref.update(f).catch(()=>{});
   }
+}
+function duelShowRules(mode){
+  const r=$("duelRules"); if(!r){ if(duel&&duel.prep){ duel.prep=false; duelChoose(); } return; }
+  r.classList.add("show"); r.hidden=false;
+  let secs = mode==="bot" ? 0 : 12;      // live: auto-enter so a slow reader can't stall the match
+  const btn=$("drGo"); let done=false, ivc=null;
+  const label=()=>{ btn.textContent = secs>0 ? "ENTER ("+secs+")" : "ENTER"; };
+  label();
+  const go=()=>{
+    if(done) return; done=true;
+    if(ivc) clearInterval(ivc);
+    r.classList.remove("show"); r.hidden=true;
+    if(duel && !duel.over){ duel.prep=false; duelChoose(); }
+  };
+  btn.onclick=go;
+  if(secs>0){ ivc=setInterval(()=>{ secs--; label(); if(secs<=0) go(); }, 1000); }
 }
 /* Decide the match through ONE authoritative field. First write of `winner` wins;
    a transaction makes concurrent KOs pick exactly one victor. Both clients then
@@ -3100,10 +3152,11 @@ function duelFinish(iWon,fromLive,msg){
   duel.over=true;
   clearInterval(duel.iv);
   stopMini(); _clearParry(); duelSetOppTricked(false);
+  { const rr=$("duelRules"); if(rr){ rr.classList.remove("show"); rr.hidden=true; } }
   if(duelUnsub){ duelUnsub(); duelUnsub=null; }
   const p=P();
   const rated = duel.mode==="live";
-  if(p){ if(iWon) p.wins=(p.wins||0)+1; else p.losses=(p.losses||0)+1; save(); flushCloud(); }
+  if(p && rated){ if(iWon) p.wins=(p.wins||0)+1; else p.losses=(p.losses||0)+1; save(); flushCloud(); }
   if(rated) duelRate(iWon ? _DUEL_WIN_RATING : -_DUEL_WIN_RATING);
   if(duel.ref) duel.ref.update({status:"done"}).catch(()=>{});
   if(iWon){ flash(); burst(180); sfx("perfect"); } else sfx("miss");
@@ -3112,14 +3165,17 @@ function duelFinish(iWon,fromLive,msg){
     '<div style="margin:auto;text-align:center;padding:34px 14px">'+
     '<div style="font-family:\'Press Start 2P\',monospace;font-size:20px;color:'+(iWon?"var(--win)":"var(--miss)")+'">'+(iWon?"VICTORY":"DEFEAT")+'</div>'+
     (msg?'<div style="margin-top:10px;color:var(--ink-2);font-size:13px">'+escapeHtml(msg)+'</div>':'')+
-    (rated?'<div style="margin-top:8px;font-family:\'Press Start 2P\',monospace;font-size:12px;color:'+(iWon?"var(--win)":"var(--miss)")+'">'+(iWon?"+":"\u2212")+_DUEL_WIN_RATING+' RATING</div>':'')+
-    '<div style="margin-top:10px;font-family:Silkscreen,monospace;font-weight:700;color:var(--ink-2)">'+((p&&p.wins)||0)+' W \u00b7 '+((p&&p.losses)||0)+' L</div>'+
+    (rated
+      ? '<div style="margin-top:8px;font-family:\'Press Start 2P\',monospace;font-size:12px;color:'+(iWon?"var(--win)":"var(--miss)")+'">'+(iWon?"+":"\u2212")+_DUEL_WIN_RATING+' RATING</div>'+
+        '<div style="margin-top:10px;font-family:Silkscreen,monospace;font-weight:700;color:var(--ink-2)">'+((p&&p.wins)||0)+' W \u00b7 '+((p&&p.losses)||0)+' L</div>'
+      : '<div style="margin-top:10px;font-family:Silkscreen,monospace;font-weight:700;color:var(--ink-2)">PRACTICE \u00b7 nothing scored</div>')+
     '<button class="btn primary" id="duelDone" style="margin-top:20px">BACK</button></div>';
   $("duelDone").addEventListener("click",exitDuel);
 }
 function exitDuel(){
   if(duel&&duel.iv) clearInterval(duel.iv);
   stopMini(); _clearParry(); duelSetOppTricked(false); leaveQueue();
+  { const rr=$("duelRules"); if(rr){ rr.classList.remove("show"); rr.hidden=true; } }
   if(duelUnsub){ duelUnsub(); duelUnsub=null; }
   duel=null;
   $("duel").classList.remove("show"); $("duel").hidden=true;
