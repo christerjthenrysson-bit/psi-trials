@@ -3112,10 +3112,9 @@ function duelTick(){
       duel.botNext=now+2400+Math.random()*2600;
       if(duel.hpOpp<=0){ duelClaimWin(true); return; }
     } else if(!duel.trapped && !duel.miniKey && Math.random()<0.16){
-      // bot quietly rigs your board (no announcement \u2014 you have to notice)
+      // bot quietly rigs your board \u2014 takes effect only on your NEXT problem, no jarring swap
       duel.trapped=true;
       duel.botNext=now+5200+Math.random()*5000;
-      duelNext();
     } else {
       const dmg=[14,14,18,18,24][Math.random()*5|0];
       duel.botNext=now+5200+Math.random()*7000;
@@ -3174,7 +3173,7 @@ function duelSyncLive(d){
   const tm=d[duel.fTrapMe]||0;
   if(tm>(duel.trapSeen||0)){
     duel.trapSeen=tm;
-    if(!duel.trapped){ duel.trapped=true; if(!duel.card||duel.card.q.kind!=="trap") duelNext(); }
+    duel.trapped=true;   // kicks in on the next card-select, not mid-question \u2014 no giveaway
   }
   duelSetOppTricked((d[duel.fTrapOpp]||0) >= (duel.trapOppN||0) && (duel.trapOppN||0) > 0);
   if(duel.hpMe<=0){ duelClaimWin(false); return; }
