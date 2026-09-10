@@ -1357,7 +1357,7 @@ const SPR_DEVIL_B = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAA
    the BACK is shown to its owner (#fMe, seen from behind, Pokemon-style);
    the FRONT is shown to the opponent (#fEnemy, facing you) and in the shop. */
 const SKINS = {
-  operator:{ name:"Operator", front:SPR_PLAYER,  back:SPR_ENEMY,   price:0 },
+  operator:{ name:"Operator", front:SPR_ENEMY,   back:SPR_PLAYER,  price:0 },
   devil:   { name:"Devil",    front:SPR_DEVIL_F, back:SPR_DEVIL_B, price:100 }
 };
 const SKIN_KEYS = Object.keys(SKINS);
