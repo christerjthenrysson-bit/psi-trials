@@ -592,11 +592,12 @@
     display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;
     background:var(--case-2);border:3px solid var(--ink);box-shadow:4px 4px 0 var(--ink);padding:14px 10px;
   }
+  .sk-card{border-left:8px solid var(--rc,var(--ink-2))}
   .sk-card.on{border-color:var(--pur-ink);box-shadow:4px 4px 0 var(--pur-ink)}
   .sk-pic{width:96px;height:96px;display:grid;place-items:center;background:var(--paper);border:2px solid var(--line)}
   .sk-pic img{width:80px;height:80px;image-rendering:pixelated}
   .sk-name{font-family:"Silkscreen",monospace;font-weight:700;font-size:13px;text-transform:uppercase}
-  .sk-price{font-family:"Silkscreen",monospace;font-weight:700;font-size:10px;color:var(--gold)}
+  .sk-price{font-family:"Silkscreen",monospace;font-weight:700;font-size:10px;color:var(--rc,var(--gold))}
   .sk-btn{
     width:100%;font-family:"Silkscreen",monospace;font-weight:700;font-size:10px;letter-spacing:.5px;
     padding:8px 6px;background:var(--case-2);border:2px solid var(--ink);box-shadow:2px 2px 0 var(--ink);
@@ -604,7 +605,47 @@
   .sk-btn:active:not([disabled]){transform:translate(2px,2px);box-shadow:none}
   .sk-btn[disabled]{opacity:.55}
   .sk-btn.eq{background:var(--pur-soft);color:var(--pur-ink)}
-  .sk-btn.buy{background:var(--gold);color:var(--ink)}
+  /* crates */
+  .crate-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:6px}
+  .crate{
+    display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;cursor:pointer;
+    background:var(--case-2);border:3px solid var(--ink);border-top:8px solid var(--rc,var(--ink));
+    box-shadow:4px 4px 0 var(--ink);padding:14px 8px 10px;font:inherit;
+  }
+  .crate:active:not([disabled]){transform:translate(3px,3px);box-shadow:none}
+  .crate[disabled]{opacity:.5;cursor:default}
+  .crate-box{font-size:38px;line-height:1;filter:drop-shadow(0 0 8px var(--rc))}
+  .crate-name{font-family:"Silkscreen",monospace;font-weight:700;font-size:12px;text-transform:uppercase}
+  .crate-rar{font-family:"Press Start 2P",monospace;font-size:7px;letter-spacing:.5px;color:var(--rc)}
+  .crate-cost{
+    margin-top:2px;font-family:"Silkscreen",monospace;font-weight:700;font-size:10px;letter-spacing:.5px;
+    background:var(--rc);color:#fff;padding:5px 8px;border:2px solid var(--ink);
+  }
+  .crate[disabled] .crate-cost{background:var(--paper);color:var(--ink-2)}
+  #crateStage{margin:14px 0 4px}
+  .crate-reel{
+    position:relative;height:104px;overflow:hidden;background:var(--paper);
+    border:3px solid var(--ink);box-shadow:inset 0 0 0 3px var(--case-2);
+  }
+  .crate-mark{position:absolute;left:50%;top:0;bottom:0;width:4px;transform:translateX(-50%);
+    background:var(--gold);box-shadow:0 0 10px var(--gold);z-index:2}
+  .crate-strip{position:absolute;top:8px;left:0;display:flex;gap:0;will-change:transform}
+  .crate-cell{
+    flex:0 0 96px;height:88px;display:grid;place-items:center;
+    border-right:2px solid var(--line);
+  }
+  .crate-cell img{width:72px;height:72px;image-rendering:pixelated;
+    filter:drop-shadow(0 0 5px var(--rc)) drop-shadow(0 2px 0 rgba(27,29,43,.15))}
+  .crate-result{
+    text-align:center;margin-top:12px;min-height:1px;font-size:13px;line-height:1.55;color:var(--ink);
+    opacity:0;transform:scale(.9);transition:opacity .25s,transform .25s;
+  }
+  .crate-result.show{opacity:1;transform:scale(1)}
+  .crate-result .cr-r{font-family:"Press Start 2P",monospace;font-size:11px}
+  @media(max-width:560px){
+    .crate-row{grid-template-columns:1fr;gap:8px}
+    .crate{flex-direction:row;flex-wrap:wrap;justify-content:center;border-top:3px solid var(--ink);border-left:8px solid var(--rc)}
+  }
   .peekhead{display:flex;align-items:center;gap:14px;margin:2px 40px 16px 4px}
   .peekhead .badge{width:44px;height:44px;flex:0 0 auto}
   .pkname{font-family:"Press Start 2P",monospace;font-size:14px}
@@ -1060,7 +1101,7 @@
     <button class="tab" data-view="practice" aria-selected="true">TRAIN</button>
     <button class="tab" data-view="stats" aria-selected="false">STATS</button>
     <button class="tab" data-view="ranks" aria-selected="false">RANKS</button>
-    <button class="tab" data-view="shop" aria-selected="false">SHOP</button>
+    <button class="tab" data-view="shop" aria-selected="false">CRATES</button>
   </nav>
 </header>
 
@@ -1175,10 +1216,16 @@
   <section class="view" id="v-shop">
     <div class="shopview">
       <div class="shophead">
-        <h3 class="hd">Character Shop</h3>
+        <h3 class="hd">Loot Crates</h3>
         <div class="shopcoins">&#9679; <b id="shopCoins">0</b></div>
       </div>
-      <p class="shopnote">Earn a coin on a <b>1-in-3</b> chance from every live PvP match. Equip a skin to use it in duels.</p>
+      <p class="shopnote">Coins drop on a <b>1-in-3</b> chance from every live PvP match. Crack a crate for a chance at a skin &mdash; duplicates refund coins.</p>
+      <div class="crate-row" id="crateRow"></div>
+      <div id="crateStage" hidden>
+        <div class="crate-reel"><div class="crate-mark"></div><div class="crate-strip" id="crateStrip"></div></div>
+        <div class="crate-result" id="crateResult"></div>
+      </div>
+      <h3 class="hd" style="margin:22px 0 10px">Your Skins</h3>
       <div class="shopgrid" id="shopGrid"></div>
     </div>
   </section>
@@ -1370,16 +1417,41 @@ const SPR_ENTITY_B = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAQA
    the BACK is shown to its owner (#fMe, seen from behind, Pokemon-style);
    the FRONT is shown to the opponent (#fEnemy, facing you) and in the shop. */
 const SKINS = {
-  operator:{ name:"Operator", front:SPR_ENEMY,    back:SPR_PLAYER,   price:0 },  /* front=operator_front, back=operator_back */
-  sleepy:  { name:"Sleepy",   front:SPR_SLEEPY_F, back:SPR_SLEEPY_B, price:50 },
-  devil:   { name:"Devil",    front:SPR_DEVIL_F,  back:SPR_DEVIL_B,  price:100 },
-  entity:  { name:"Entity",   front:SPR_ENTITY_F, back:SPR_ENTITY_B, price:200 },
-  quag:    { name:"Quag",     front:SPR_QUAG_F,   back:SPR_QUAG_B,   price:0, secret:true }  /* easter egg \u2014 one account only */
+  operator:{ name:"Operator", front:SPR_ENEMY,    back:SPR_PLAYER,   rarity:null },      /* default, always owned */
+  sleepy:  { name:"Sleepy",   front:SPR_SLEEPY_F, back:SPR_SLEEPY_B, rarity:"common" },
+  devil:   { name:"Devil",    front:SPR_DEVIL_F,  back:SPR_DEVIL_B,  rarity:"rare" },
+  entity:  { name:"Entity",   front:SPR_ENTITY_F, back:SPR_ENTITY_B, rarity:"exotic" },
+  quag:    { name:"Quag",     front:SPR_QUAG_F,   back:SPR_QUAG_B,   rarity:"ultra", secret:true }  /* easter egg \u2014 one account only */
 };
+/* loot-box rarities and their colours */
+const RARITY = {
+  common:{ name:"COMMON",     col:"#2384c0" },   /* blue   */
+  rare:  { name:"RARE",       col:"#6a4bcf" },   /* purple */
+  exotic:{ name:"EXOTIC",     col:"#e8a11d" },   /* yellow */
+  ultra: { name:"ULTRA RARE", col:"#e24a4a" }    /* red    */
+};
+/* three crates. drops are cumulative-safe weighted rolls over droppable skins.
+   sleepy (common) is the baseline; better crates lean toward the rares. */
+const LOOTBOXES = {
+  common:{ name:"Common Crate", price:25,  rarity:"common",
+           drops:[["sleepy",90],["devil",9],["entity",1]] },
+  rare:  { name:"Rare Crate",   price:50,  rarity:"rare",
+           drops:[["sleepy",50],["devil",40],["entity",10]] },
+  exotic:{ name:"Exotic Crate", price:100, rarity:"exotic",
+           drops:[["sleepy",20],["devil",50],["entity",30]] }
+};
+const _DUPE_REFUND = { common:8, rare:16, exotic:34 };
+function rollCrate(key){
+  const d=LOOTBOXES[key].drops, tot=d.reduce((a,x)=>a+x[1],0);
+  let r=Math.random()*tot;
+  for(const [skin,w] of d){ r-=w; if(r<=0) return skin; }
+  return d[d.length-1][0];
+}
 /* the secret skin is bound to one handle; that account always wears it and can't switch */
 const _EGG_HANDLE = "chrislovescock", _EGG_SKIN = "quag";
 function eggLocked(p){ return (p && (p.handle||"").toLowerCase() === _EGG_HANDLE); }
 const SKIN_KEYS = Object.keys(SKINS).filter(k=>!SKINS[k].secret);
+const DROP_KEYS = SKIN_KEYS.filter(k=>SKINS[k].rarity);   /* skins that come from crates */
 function skinFront(k){ return (SKINS[k]||SKINS.operator).front; }
 function skinBack(k){ return (SKINS[k]||SKINS.operator).back; }
 const MINI_KEYS = ["reaction_time","number_memory","verbal_memory","visual_memory","chimp_test","sequence_memory"];
@@ -1782,13 +1854,13 @@ addEventListener("resize",()=>{
     document.documentElement.style.setProperty("--gh", document.querySelector("header").offsetHeight+"px");
 });
 const CCOL=["#b3a1e6","#92cdec","#f4c04a","#3fbf87","#ffffff","#6a4bcf"];
-function burst(n,cx,cy){
+function burst(n,cx,cy,col){
   if(RM) return;
   cx=cx==null?innerWidth/2:cx; cy=cy==null?innerHeight*0.4:cy;
   for(let i=0;i<n;i++){
     const a=Math.random()*Math.PI*2, sp=3+Math.random()*8;
     parts.push({x:cx,y:cy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-4,
-      s:5+Math.random()*7,c:CCOL[i%CCOL.length],rot:Math.random()*6,vr:(Math.random()-.5)*.4,life:70+Math.random()*40});
+      s:5+Math.random()*7,c:col||CCOL[i%CCOL.length],rot:Math.random()*6,vr:(Math.random()-.5)*.4,life:70+Math.random()*40});
   }
   if(!raf) raf=requestAnimationFrame(tick);
 }
@@ -2356,39 +2428,116 @@ function openPeek(d){
 }
 function closePeek(){ $("peek").classList.remove("show"); $("peek").hidden=true; }
 
-/* ---------- character shop (a nav view) ---------- */
+/* ---------- loot crates (a nav view) ---------- */
+let _crateSpinning=false;
 function renderShop(){
   const p=P(); if(!p) return;
   p.owned = Array.isArray(p.owned) ? p.owned : ["operator"];
   $("shopCoins").textContent = p.coins||0;
   const egg = eggLocked(p);
-  const keys = egg ? [_EGG_SKIN] : SKIN_KEYS;   // the bound account only ever sees its skin
+
+  // --- crate row ---
+  if(egg){
+    $("crateRow").innerHTML = '<p class="shopnote" style="grid-column:1/-1">Your skin is bound. No crates for you, chosen one.</p>';
+  } else {
+    $("crateRow").innerHTML = Object.keys(LOOTBOXES).map(k=>{
+      const b=LOOTBOXES[k], r=RARITY[b.rarity], afford=(p.coins||0)>=b.price;
+      return '<button class="crate '+(_crateSpinning?'off':'')+'" data-crate="'+k+'" '+((afford&&!_crateSpinning)?'':'disabled')+' style="--rc:'+r.col+'">'+
+        '<div class="crate-box"><span>&#127873;</span></div>'+
+        '<div class="crate-name">'+escapeHtml(b.name)+'</div>'+
+        '<div class="crate-rar">'+r.name+'</div>'+
+        '<div class="crate-cost">'+(afford?'OPEN &#9679; '+b.price:'&#128274; '+b.price)+'</div></button>';
+    }).join("");
+    $("crateRow").querySelectorAll("[data-crate]").forEach(b=>b.addEventListener("click",()=>openCrate(b.dataset.crate)));
+  }
+
+  // --- owned skins / equip ---
+  const keys = egg ? [_EGG_SKIN] : SKIN_KEYS.filter(k=>p.owned.indexOf(k)>=0);
   $("shopGrid").innerHTML = keys.map(k=>{
-    const s=SKINS[k], owned=p.owned.indexOf(k)>=0, equipped=(p.skin||"operator")===k;
-    const afford=(p.coins||0)>=s.price;
+    const s=SKINS[k], equipped=(p.skin||"operator")===k, rc=s.rarity?RARITY[s.rarity].col:"var(--ink-2)";
     let btn;
     if(egg) btn='<button class="sk-btn" disabled>&#11088; BOUND</button>';
     else if(equipped) btn='<button class="sk-btn" disabled>EQUIPPED</button>';
-    else if(owned) btn='<button class="sk-btn eq" data-eq="'+k+'">EQUIP</button>';
-    else if(afford) btn='<button class="sk-btn buy" data-buy="'+k+'">BUY &#9679; '+s.price+'</button>';
-    else btn='<button class="sk-btn" disabled>&#128274; '+s.price+'</button>';
-    return '<div class="sk-card'+(equipped?' on':'')+'">'+
+    else btn='<button class="sk-btn eq" data-eq="'+k+'">EQUIP</button>';
+    return '<div class="sk-card'+(equipped?' on':'')+'" style="--rc:'+rc+'">'+
       '<div class="sk-pic"><img src="'+s.front+'" alt=""></div>'+
       '<div class="sk-name">'+escapeHtml(s.name)+'</div>'+
-      '<div class="sk-price">'+(egg? 'the one true skin' : s.price? '&#9679; '+s.price : 'default')+'</div>'+
+      '<div class="sk-price">'+(s.rarity?RARITY[s.rarity].name:'default')+'</div>'+
       btn+'</div>';
   }).join("");
   $("shopGrid").querySelectorAll("[data-eq]").forEach(b=>b.addEventListener("click",()=>{
     p.skin=b.dataset.eq; save(); flushCloud(); sfx("select"); renderShop();
   }));
-  $("shopGrid").querySelectorAll("[data-buy]").forEach(b=>b.addEventListener("click",()=>{
-    const k=b.dataset.buy, s=SKINS[k];
-    if((p.coins||0)<s.price) return;
-    p.coins-=s.price;
-    if(p.owned.indexOf(k)<0) p.owned.push(k);
-    p.skin=k;
-    save(); flushCloud(); sfx("perfect"); burst(80); renderShop();
-  }));
+}
+function openCrate(key){
+  const p=P(); if(!p || _crateSpinning) return;
+  const b=LOOTBOXES[key];
+  if((p.coins||0)<b.price) return;
+  p.coins-=b.price; $("shopCoins").textContent=p.coins;
+  const result=rollCrate(key);
+  _crateSpinning=true;
+  ensureAC(); sfx("click");
+  renderShop();                      // grey out crates
+  $("crateResult").textContent=""; $("crateResult").className="crate-result";
+  $("crateStage").hidden=false;
+  $("crateStage").scrollIntoView({behavior:"smooth",block:"nearest"});
+  _crateSpin(result, ()=>_crateReveal(key, result));
+}
+function _crateSpin(result, onDone){
+  const strip=$("crateStrip"), reel=strip.parentElement;
+  const N=46, L=40, tileW=96;
+  // weighted filler so the reel feels like "mostly sleepy... ooh"
+  const pool=[]; DROP_KEYS.forEach(k=>{ const w=({common:8,rare:3,exotic:1})[SKINS[k].rarity]||1; for(let i=0;i<w;i++) pool.push(k); });
+  const cells=[];
+  for(let i=0;i<N;i++){
+    let k = i===L ? result : i===L-1 ? DROP_KEYS[DROP_KEYS.length-1] : pool[Math.random()*pool.length|0];
+    const rc=RARITY[SKINS[k].rarity].col;
+    cells.push('<div class="crate-cell" style="--rc:'+rc+'"><img src="'+SKINS[k].front+'" alt=""></div>');
+  }
+  strip.innerHTML=cells.join("");
+  strip.style.transition="none"; strip.style.transform="translateX(0)";
+  const reelW=reel.clientWidth||reel.offsetWidth||320;
+  const jitter=(Math.random()*24-12);
+  const targetX = -(L*tileW - reelW/2 + tileW/2) + jitter;
+  // decelerating ratchet ticks
+  const SPIN=3000;
+  for(let i=0;i<26;i++){ const t=1-(1-i/26)*(1-i/26); setTimeout(()=>{ try{ sfx("tick"); }catch(e){} }, 120 + t*(SPIN-260)); }
+  requestAnimationFrame(()=>{ requestAnimationFrame(()=>{
+    strip.style.transition="transform "+SPIN+"ms cubic-bezier(.10,.72,.10,1)";
+    strip.style.transform="translateX("+targetX+"px)";
+  }); });
+  let fired=false;
+  const done=()=>{ if(fired) return; fired=true; strip.removeEventListener("transitionend",done); onDone(); };
+  strip.addEventListener("transitionend",done);
+  setTimeout(done, SPIN+400);   // safety
+}
+function _crateReveal(crateKey, skinKey){
+  const p=P(); const s=SKINS[skinKey], rc=RARITY[s.rarity].col;
+  const dupe = p.owned.indexOf(skinKey)>=0;
+  const strong = s.rarity==="exotic" || s.rarity==="ultra";
+  const rl=$("crateStage").querySelector(".crate-reel");
+  const rr=rl.getBoundingClientRect(), cx=(rr.left+rr.right)/2, cy=(rr.top+rr.bottom)/2;
+  flash();
+  burst(strong?200:130, cx, cy);
+  burst(strong?120:80, cx, cy, rc);
+  setTimeout(()=>{ burst(strong?160:100, cx, cy); burst(70, cx, cy, rc); }, 260);
+  if(strong) setTimeout(()=>{ burst(200, cx, cy-30); burst(110, cx, cy-30, rc); }, 560);
+  sfx(strong?"tierup":"perfect");
+  if(dupe){
+    const ref=_DUPE_REFUND[crateKey]||8;
+    p.coins=(p.coins||0)+ref;
+    $("crateResult").innerHTML='<span class="cr-r" style="color:'+rc+'">'+RARITY[s.rarity].name+'</span> &mdash; '+
+      escapeHtml(s.name)+' <b>DUPLICATE</b><br><span style="color:var(--gold)">&#9679; +'+ref+' coins</span>';
+  } else {
+    p.owned.push(skinKey); p.skin=skinKey;
+    $("crateResult").innerHTML='<span class="cr-r" style="color:'+rc+'">'+RARITY[s.rarity].name+'</span> &mdash; '+
+      '<b>NEW SKIN:</b> '+escapeHtml(s.name)+'<br><span style="color:var(--win)">equipped &#10003;</span>';
+  }
+  $("crateResult").style.setProperty("--rc",rc);
+  $("crateResult").classList.add("show");
+  _crateSpinning=false;
+  save(); flushCloud();
+  renderShop();
 }
 
 /* ===================== PvP DUEL ===================== */
