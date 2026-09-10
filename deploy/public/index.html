@@ -3099,7 +3099,14 @@ function duelTick(){
   }
   if(duel.mode==="live"&&duel.ref){
     duel.hb=(duel.hb||0)+1;
-    if(duel.hb%16===0){ const f={}; f[duel.fSeenMe]=Date.now(); duel.ref.update(f).catch(()=>{}); }
+    if(duel.hb%6===0 && !duel.over){           // ~1.5s full resync \u2014 any dropped write self-corrects fast
+      const f={};
+      f[duel.fSeenMe]=Date.now();
+      f[duel.fDmgMe]=duel.dealtMe||0;
+      f[duel.fSelfMe]=duel.selfMe||0;
+      f[duel.fHealMe]=duel.heal||0;
+      duel.ref.update(f).catch(()=>{});
+    }
     if(!duel.prep && !duel._claiming){          // reconcile: catch any KO that slipped past every path
       if(duel.hpMe<=0) duelClaimWin(false);
       else if(duel.hpOpp<=0) duelClaimWin(true);
