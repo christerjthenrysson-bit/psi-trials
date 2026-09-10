@@ -3318,13 +3318,23 @@ function duelFinish(iWon,fromLive,msg){
   if(rated) duelRate(iWon ? _DUEL_WIN_RATING : -_DUEL_WIN_RATING);
   if(duel.ref) duel.ref.update({status:"done"}).catch(()=>{});
   if(iWon){
-    flash(); sfx("perfect"); burst(180);
-    if(rated){                          // extra celebration for a real PvP win
+    flash(); sfx("perfect"); burst(200);
+    if(rated){                          // big celebration for a real PvP win \u2014 a full ~2.4s confetti storm
       const meCol=(duel.me&&duel.me.col)||"#b3a1e6";
-      confettiBurstAt($("fMe"), meCol, 36, 150);
-      setTimeout(()=>{ if($("duel").classList.contains("show")) burst(170, innerWidth*0.26, innerHeight*0.34); }, 260);
-      setTimeout(()=>{ if($("duel").classList.contains("show")) burst(170, innerWidth*0.74, innerHeight*0.4); }, 560);
-      setTimeout(()=>{ if($("duel").classList.contains("show")){ burst(150, innerWidth*0.5, innerHeight*0.24); confettiBurstAt($("fMe"), meCol, 24, 120); } }, 900);
+      const alive=()=>$("duel").classList.contains("show");
+      confettiBurstAt($("fMe"), meCol, 44, 170);
+      const shots=[
+        [180, .5,.16], [200, .22,.30], [200, .78,.30],
+        [170, .12,.5],  [170, .88,.5],  [220, .5,.2],
+        [180, .35,.4],  [180, .65,.4],  [200, .5,.12],
+        [160, .2,.62],  [160, .8,.62],  [240, .5,.28]
+      ];
+      shots.forEach(([n,fx,fy],i)=>setTimeout(()=>{
+        if(!alive()) return;
+        burst(n, innerWidth*fx, innerHeight*fy);
+        if(i%3===0) confettiBurstAt($("fMe"), meCol, 22, 130);
+      }, 180 + i*190));
+      setTimeout(()=>{ if(alive()){ flash(); burst(240, innerWidth*0.5, innerHeight*0.3); } }, 1400);
     }
   } else sfx("miss");
   duel.card=null;
