@@ -1,0 +1,20 @@
+# Firebase deploy deps & caches
+deploy/node_modules/
+deploy/.firebase/
+
+# Claude Code tooling copied into deploy/
+deploy/.agents/
+deploy/.claude/
+deploy/skills-lock.json
+deploy/*-debug.log
+deploy/*-debug.*.log
+deploy/firestore-debug.log
+deploy/ui-debug.log
+deploy/pglite/
+
+# scratch / intermediate
+_*.b64
+
+# OS junk
+.DS_Store
+Thumbs.db
